@@ -1041,7 +1041,7 @@ mb_ad::spring_course[]
 [[difference-spring-spring-boot]]
 === What is the difference between Spring Framework & Spring Boot?
 
-mbyoutube::QuvS_VLbGko[]
+mb_youtube::QuvS_VLbGko[]
 
 If you have read this guide, you should understand by now that Spring Boot builds _on top_ of Spring. While a comprehensive Spring Boot guide is coming up soon, here's an example what "opinionated defaults" in Spring Boot mean.
 

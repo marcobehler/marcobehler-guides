@@ -946,7 +946,7 @@ Again, this guide can only give you a quick overview of what Spring Data is, for
 
 If you want to see Hibernate/JPA in action, have a look at the video below.
 
-mbyoutube::xHminZ9Dxm4[]
+mb_youtube::xHminZ9Dxm4[]
 
 == Deciding On The Right (™) Library
 

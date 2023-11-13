@@ -298,4 +298,4 @@ Super useful!
 
 If you prefer video for certain topics, you can see the guide in action on YouTube.
 
-mbyoutube::UnM4QAumuCQ[]
+mb_youtube::UnM4QAumuCQ[]

@@ -67,7 +67,7 @@ So, in the case of MySQL, you would add this tag to your pom.xml file.
 
 == JDBC Tutorial
 
-mbyoutube::KgXq2UBNEhA[]
+mb_youtube::KgXq2UBNEhA[]
 
 === How to connect to a database
 

@@ -456,7 +456,7 @@ If you have read this far, you should now have a pretty thorough understanding o
 
 Or, you can have a look at this video, where you'll see me go through this process live (*English version now available!*), with the help of the fantastic https://github.com/jetty-project/jetty-load-generator[jetty-load-generator]. You'll find all the source code needed for that in this https://github.com/marcobehler/high-performance-java[GitHub repository].
 
-mbyoutube::PvApFICtCiI[]
+mb_youtube::PvApFICtCiI[]
 
 == Acknowledgments
 

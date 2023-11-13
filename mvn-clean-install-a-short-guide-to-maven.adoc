@@ -31,7 +31,7 @@ There is more to Maven than a couple lines on 'mvn clean install'. If you want t
 
 == Maven: Crash-Course
 
-mbyoutube::Xatr8AZLOsE[]
+mb_youtube::Xatr8AZLOsE[]
 
 https://maven.apache.org/[Maven] is one of the most popular build tools in the Java universe (others being https://gradle.org/[Gradle] or old-school https://ant.apache.org/[Ant]). You can not only build Java projects with it, but pretty much every project written in a
 JVM language like https://kotlinlang.org/[Kotlin] or https://www.scala-lang.org/[Scala], as well as other languages like C# and Ruby.
