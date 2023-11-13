@@ -1,0 +1,298 @@
+= mvn clean install - a short guide to Maven
+Marco Behler
+2022-06-23
+:revdate: 2020-10-17
+:page-layout: layout-guides
+:page-icon: business_bulb-63
+:sourcedir: /mnt/c/dev/mp3-archiver/src/com/company
+:linkattrs:
+:page-image: "/images/guides/undraw_building_blocks_n0nc.png"
+:page-description: You can use this guide to understand what a 'mvn clean install' really does. Also: A crash-course on Maven and workarounds for its most common pitfalls.
+:page-published: true
+:page-tags: ["maven", "java"]
+:page-course_url: https://www.marcobehler.com/courses/learning-maven?utm_campaign=maven_short_guide&utm_medium=maven_short_guide&utm_source=maven_short_guide
+:page-commento_id: /guides/mvn-clean-install-a-short-guide-to-maven
+
+== What does mvn clean install do?
+
+*The short answer*
+
+https://maven.apache.org/[Apache Maven] is a popular build tool, that takes your project's Java source code, compiles it, tests it and converts it into an executable Java program: either a .jar or a .war file.
+
+`_mvn clean install_` is the command to do just that.
+
+1. You are calling the `_mvn_` executable, which means you need Maven installed on your machine. (see <<How do you install Maven?>>)
+2. You are using the `_clean_` command, which will delete all previously compiled Java .class files and resources (like .properties) in your project. Your build will start from a clean slate.
+3. `_Install_` will then compile, test & package your Java project and even _install_/copy your built .jar/.war file into your local Maven repository. (see <<A look at the Maven build lifecycle: phases>>)
+
+*The (short) long answer:*
+
+There is more to Maven than a couple lines on 'mvn clean install'. If you want to learn about how Maven's dependency management and build cycle works, or how to avoid the most common pitfalls when working with it: Read on.
+
+== Maven: Crash-Course
+
+mbyoutube::Xatr8AZLOsE[]
+
+https://maven.apache.org/[Maven] is one of the most popular build tools in the Java universe (others being https://gradle.org/[Gradle] or old-school https://ant.apache.org/[Ant]). You can not only build Java projects with it, but pretty much every project written in a
+JVM language like https://kotlinlang.org/[Kotlin] or https://www.scala-lang.org/[Scala], as well as other languages like C# and Ruby.
+
+Now what _exactly_ does a build tool do? Maven does three things rather well:
+
+1. *Dependency Management*: Maven lets you easily include 3rd party dependencies (think libraries/frameworks such as Spring) in your project. An equivalent in other languages would be  https://www.npmjs.com/[Javascript's npm], https://rubygems.org/[Ruby's gems] or https://getcomposer.org/[PHP's composer].
+2. *Compilation through convention*: In theory you could compile big Java projects with a ton of classes, by hand with the javac command line compiler (or automate that with a bash script). This does however only work for toy projects. Maven expects a certain directory structure for your Java source code to live in and when you later do a `_mvn clean install_` , the whole compilation and packaging work will be done for you.
+3. *Everything Java*: Maven can also run code quality checks, execute test cases and even deploy applications to remote servers, through plugins. Pretty much every possible task you can think of.
+
+=== Maven's directory layout
+
+==== Maven's pom.xml
+
+Technically, _any_ directory that contains a pom.xml file is also a valid Maven project. A pom.xml file contains everything needed to describe your Java project. Let's have a look at a minimal version:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.marcobehler</groupId>
+    <artifactId>my-project</artifactId> <1>
+    <version>1.0-SNAPSHOT</version> <2>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source> <3>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency> <4>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
+----
+
+1. We are defining a project called 'my-project'
+2. With a version number of 1.0-SNAPSHOT, i.e. work-in-progress
+3. Using Java 1.8 for compilation
+4. With one dependency needed for unit testing: junit in version 4.12
+
+==== Maven's src & target folders
+
+Apart from a pom.xml file, you also need Java source code for Maven to do its magic, whenever you are calling `_mvn clean install_`.
+By convention:
+
+* Java source code is to be meant to live in the "/src/main/java" folder
+* Maven will put compiled Java classes into the "target/classes" folder
+* Maven will also build a .jar or .war file, depending on your project, that lives in the "target" folder.
+
+In the end, your project will look like this:
+
+[source,console]
+----
++ myproject
+    + -- src
+        + -- main
+            + -- java
+                 MyApp.java
+    + -- target
+        + -- classes (after 'mvn compile')
+             MyApp.class
+
+        myproject.jar (upon mvn package or mvn install)
+
+    pom.xml
+----
+
+Now that you have a pom.xml file, as well as a src folder, you still need Maven installed on your machine. Let's do that now.
+
+=== How do you install Maven?
+
+Installing Maven is rather simple. Similar to Java it is just a .zip file that you need to download and put anywhere on your harddrive. The .zip file's contents look like this:
+
+[source,console]
+----
+
+Directory c:\dev\apache-maven-3.6.3
+
+12.07.2019  09:25    <DIR>          .
+12.07.2019  09:25    <DIR>          ..
+12.07.2019  09:25    <DIR>          bin
+12.07.2019  09:25    <DIR>          boot
+12.07.2019  09:25    <DIR>          conf
+12.07.2019  09:25    <DIR>          lib
+12.07.2019  09:24            13.437 LICENSE
+12.07.2019  09:24               182 NOTICE
+12.07.2019  09:24             2.533 README.txt
+----
+
+Now you need to make sure to add the /bin directory to your PATH variable, otherwise you cannot call 'mvn' (think: mvn clean install) from anywhere. That's it.
+
+If you are unsure about any of these two steps, there's a https://www.youtube.com/watch?v=--Iv5vBIHjI[great video on Youtube], showing how to install the latest Maven 3.6 on Windows.
+
+=== A look at the Maven build lifecycle: phases
+
+Now what _really_ happens when you execute a `_mvn clean install_` in your project? Maven has the concept of a build lifecycle, which is made up of different phases.
+
+Here's what Maven's default lifecycle looks like (note: it is missing 'clean').
+
+[ditaa,mavenphasesv3,png]
+----
++-------------------------------+     +-------------------------------+     +-------------------------------+
+|                               |     |                               |     |                               |
+|                               |     |                               |     |                               |
+|  *validate*                   |+--->|  *compile*                    |+--->|  *test*                       |+-->
+|                               |     |                               |     |                               |
+|  (are my pom.xmls correct?)   |     |  (MyApp.java -> MyApp.class)  |     |  (run unit tests)             |
+|                               |     |                               |     |                               |
++-------------------------------+     +-------------------------------+     +-------------------------------+
+
++-------------------------------+     +-------------------------------+     +-------------------------------+
+|                               |     |                               |     |                               |
+|                               |     |                               |     |                               |
+|  *package*                    |+--->|  *verify*                     |+--->|  *install*                    |+-->
+|                               |     |                               |     |                               |
+|  (MyApp.class -> MyApp.jar)   |     |  (run integration tests)      |     |  (cp myapp.jar to             |
+|                               |     |                               |     |  ~/.m2/repository/com/        |
+|                               |     |                               |     |  marcobehler/myapp/myapp.jar  |
++-------------------------------+     +-------------------------------+     +-------------------------------+
+
++-------------------------------+
+|                               |
+|                               |
+|  *deploy*                     |
+|                               |
+|  cp myApp.jar to a            |
+|  remote Maven repository      |
+|                               |
++-------------------------------+
+----
+
+These phases are sequential and depend on each other.
+
+*Example*:
+
+When you call `_mvn deploy_`, mvn will also execute _every_ lifecycle phase before `_deploy_`, in order: `_validate_`, `_compile_`, `_test_`, `_package_`, `_verify_`, `_install_`.
+
+Same for `_verify_`: `_validate_`, `_compile_`, `_test_`, `_package_`. Same for all other phases.
+
+And as `_clean_` is not part of Maven's default lifecycle, you end up with commands like `_mvn clean install_` or `_mvn clean package_`. `_Install_` or `_package_` will trigger all preceding phases, but you need to specify clean in addition.
+
+
+=== Where does Maven store 3rd party libraries?
+
+Contrary to other languages, where project dependencies are stored in your project's directory, Maven has the concept of repositories.
+
+There are local repositories (in your user's home directory:  ~/.m2/) and remote repositories. Remote repositories could be internal, company-wide repositories like https://jfrog.com/artifactory/[Artifactory] or https://de.sonatype.com/nexus-repository-oss[Nexus] or the (reference) global repo at https://repo.maven.apache.org/maven2/.
+
+Maven will _always_ download your project dependencies into your local maven repository _first_ and _then_ reference them for your build. When you think back at your pom.xml file from before:
+
+[source,xml]
+----
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+----
+
+Then mvn will, once you try and "mvn test" your project, download the junit dependency into ~/.m2/repository/junit/junit/4.12/junit-4.12.jar and reference it via https://en.wikipedia.org/wiki/Classpath_(Java)[Java's classpath mechanism] for your build.
+
+For more info on using repositories, see the official documentation at https://maven.apache.org/guides/introduction/introduction-to-repositories.html.
+
+mb_ad::maven_course[]
+
+
+== Common Maven Questions
+
+=== Where can I find the Maven coordinates for any 3rd party library?
+
+Popular sites are https://mvnrepository.com/ or https://search.maven.org/. You can find others in this thread on https://stackoverflow.com/questions/3430423/recommendable-maven-repository-search-engines[Stackoverflow].
+
+
+=== What is the difference between mvn clean package and mvn clean install?
+
+If you followed the guide, this should be pretty much clear by now.
+
+* *clean*: deletes the /target folder. So, the same result for both commands.
+* *package*: Converts your .java source code into a .jar/.war file and puts it into the /target folder.
+* *install*: First, it does a package(!). Then it takes that .jar/.war file and puts it into your local Maven repository, which lives in ~/.m2/repository.
+
+=== Why do I need to call `_clean_` at all? Wouldn't mvn install be enough?
+
+In theory, calling `_mvn install_` would be enough if Maven was smart enough to do reliable, incremental builds. That means figuring out what Java source files/modules changed and only compile those.
+
+In practice, it is actually enough for the vast majority of cases, but note: Before Maven 3.1 incremental compilation was basically non-existent, and even with the latest Maven and compiler plugin versions https://issues.apache.org/jira/browse/MCOMPILER-209[there's the odd bugs and documentation issues] in the incremental compilation support.
+
+Hence developers got it ingrained to always call 'mvn clean install', even though this increases build time a lot in bigger projects. 
+  
+
+=== Why does mvn clean install not build sibling projects?
+
+Unfortunately, this is something that happens in multi-module projects and other build tools like e.g. Gradle have no problem with it. Imagine your Maven build looks like this:
+
+[source,console]
+----
++ stocks-broker-app (parent)
+    + stocks-data-module
+    + stocks-rest-module (depends on stock-data)
+    + stocks-ui-module (depends on stock-data)
+----
+
+and you are doing the following:
+
+[source,console]
+----
+cd stocks-ui-module
+mvn clean install  // or another appropriate goal
+----
+
+The problem is: Maven will _NOT_ be smart enough to automatically build stock-data as a needed sibling dependency. Instead, you will need to have stock-data built already, yourself.
+
+There's a workaround though. You don't always have to build the whole parent project, instead you can specify the list of submodules to build and do a dependent build. In our case, this would look like:
+
+[source,console]
+----
+cd ..  // so you are in the parent project
+mvn -pl stocks-ui-module -am clean install  // or another appropriate goal
+----
+
+* -pl lets you specify the submodules to build
+* -am stands for _also make_, which will build dependent modules as well
+
+
+
+=== What does mvn -U do?
+
+Sometimes, if your project depends on SNAPSHOT dependencies, Maven will not update your local Maven repository with the very latest snapshot version.
+
+This is a bit oversimplified, but if you want to make sure that Maven _always_ tries to download the latest _snapshot_ dependency versions, invoke it with the -U switch.
+
+[source,console]
+----
+mvn -U clean install
+----
+
+=== What is mvnw?
+
+Some projects come with a `_mvnw_` executable, which _does not_ stand for Maven (on) Windows, but rather for Maven _wrapper_.
+
+This means you don't have to have mvn installed on your machine to build your project - rather, mvn is embedded in your project directory and you can call it with the mvnw executable.
+
+Learn more about the Maven wrapper https://github.com/takari/maven-wrapper[here].
+
+== Fin
+
+This guide is just a quick overview of what Maven can do for you and how to work around its most common pitfalls.
+
+If you have any comments or feedback, or want to suggest a another common Maven question, simply leave a comment below.
+
+Thanks for reading.

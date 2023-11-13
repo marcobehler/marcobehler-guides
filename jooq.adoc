@@ -1,0 +1,346 @@
+= jOOQ - a short guide
+Marco Behler
+2019-12-15
+:revdate: 2019-12-15
+:page-layout: layout-guides
+:linkattrs:
+:page-image: "/images/guides/undraw_hacker_mindset_gjwq.png"
+:page-description: You can use this guide to understand what jOOQ is, how to get started with it quickly and how jOOQ integrates with or compares to libraries like Spring and Hibernate.
+:page-published: true
+:page-tags: ["jooq", "java sql", "java databases"]
+:page-commento_id: guides-jooq-short
+
+== What is jOOQ?
+
+https://www.jooq.org/[jOOQ] is a popular Java database library, that lets you write typesafe SQL queries in Java. How does it work?
+
+1. You use https://www.jooq.org/doc/3.12/manual/code-generation/[jOOQ's code generator] to connect to your database and generate Java classes that model your database tables and columns.
+2. Instead of writing SQL String statements with https://www.oracle.com/technetwork/java/javase/jdbc/index.html[plain JDBC], you will use those generated Java classes to write your SQL queries.
+3. jOOQ will conveniently turn these Java classes and queries into real SQL, execute them against the database and map the results back to Java code.
+
+This is of course just the very high-level overview. If you want to know in more detail how jOOQ works: Read on.
+
+== jOOQ: Crash-Course
+
+=== First: Your Database, Then: Your Java classes
+
+Compared to other popular libraries like https://hibernate.org/[Hibernate], jOOQ takes a database-first or SQL-centric approach.
+
+With Hibernate, you usually start writing your Java classes first and then let Hibernate or a tool like Liquibase or Flyway generate corresponding database tables.
+
+With jOOQ, you start with your database. Your database and tables must already exist and you then use jOOQ's code generator to generate Java classes for you.
+
+=== Using jOOQ's code generator
+
+You can use jOOQ's code generator in roughly three ways:
+
+1. Standalone: You need to https://www.jooq.org/download/[download] jOOQ from its website.
+2. Maven and jOOQ: You generate code with jOOQ's https://www.jooq.org/doc/3.12/manual/code-generation/codegen-maven/[Maven plugin].
+3. Gradle and jOOQ: You generate code with jOOQ's https://github.com/etiennestuder/gradle-jooq-plugin[Gradle plugin].
+
+The generation process for all three options is always the same. Whereas in the standalone case you need to trigger generation manually, with Maven and Gradle plugins code generation will happen automatically as part of the build process.
+
+In any case, you need a configuration file for your jOOQ's code generator which is, by default, called library.xml. It looks like this:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<configuration xmlns="http://www.jooq.org/xsd/jooq-codegen-3.12.0.xsd">
+
+  <jdbc>  // <1>
+    <driver>com.mysql.cj.jdbc.Driver</driver>
+    <url>jdbc:mysql://localhost:3306/library</url>
+    <user>root</user>
+    <password></password>
+  </jdbc>
+
+  <generator>
+    <database>  // <2>
+        <!-- database specific options: What tables to schema/tables to include or exclujde ? What type of database? etc-->
+        <includes>.*</includes>
+    </database>
+
+    <target> // <3>
+      <!-- The destination package of your generated classes (within the destination directory) -->
+      <packageName>my.startup</packageName>
+
+      <!-- The destination directory of your generated classes. Using Maven directory layout here -->
+      <directory>c:/dev/myproject/src/main/java</directory>
+    </target>
+  </generator>
+</configuration>
+----
+
+As you can see, the library.xml config file roughly boils down to:
+
+<1> Your database url, username & password.
+<2> Options like what tables to include/exclude in the schema generation.
+<3> Where to put the generated classes.
+
+Example:
+
+Imagine your database has a *USERS table*. Running the code generator with the generator config will create (among many others) two classes:
+
+* A *my.startup.Users class*, representing your Users _database table_.
+* A *my.startup.UsersRecord* class, representing a _row inside_ your Users table.
+
+[ditaa,jooq-code-generation-1,png]
+----
++-------------------------------+           +-----------------------------------+
+| Database                      |           | Java/Jooq Class                   |
+|-------------------------------|           |-----------------------------------|
+|                               |           |                                   |
+| Table: Users (schema)         |  -------> |  my.startup.Users                 |
+|                               |           |                                   |
++-------------------------------+           +-----------------------------------+
+
++-------------------------------+           +-----------------------------------+
+| Database                      |           | Java/Jooq Class                   |
+|-------------------------------|           |-----------------------------------|
+|                               |           |                                   |
+| Table: Users (columns)        |  -------> |  my.startup.UsersRecord           |
+|                               |           |                                   |
++-------------------------------+           +-----------------------------------+
+----
+
+Let's see how we can execute SQL queries with these generated classes:
+
+=== jOOQ's DSL
+
+jOOQ has two classes, DSL and DSLContext (Domain Specific Language) that developers need to use to start writing SQL queries. You could also call these DSL classes _SQL Builder_ classes, as they let you, well, build SQL queries.
+
+As jOOQ is just a wrapper around JDBC, Java database basics apply and you need to  get a database connection for jOOQ to work. You either open one yourself, or ask your connection pool to give you one.
+
+Let's have a look at a jOOQ DSL example, using Java's DriverManager.
+
+[source,java]
+----
+
+import java.sql.SQLException;
+import static my.startup.Tables.*;
+
+public class Main {
+
+    public static void main(String[] args) throws SQLException {
+        String userName = "root";
+        String password = "";
+        String url = "jdbc:mysql://localhost:3306/myhotstartup";
+
+        try (Connection conn = DriverManager.getConnection(url, userName, password)) {  // <1>
+
+             DSLContext create = DSL.using(conn, SQLDialect.MYSQL);  // <2>
+
+             Result<Record> result = create.select().from(USERS).fetch(); // <3>
+
+            for (Record r : result) {   // <3>
+                Integer id = r.getValue(USERS.ID);
+                String username = r.getValue(USERS.USERNAME);
+                String email = r.getValue(USERS.EMAIL);
+
+                System.out.println("ID: " + id + " + email: " + email );
+            }
+
+        }
+    }
+}
+----
+
+What's happening here?
+
+<1> You open up a database connection with plain JDBC. This is standard Java.
+<2> You create jOOQ's DSLContext that lets you execute queries against the database.
+<3> You execute a simple _select * from USERS_ with jOOQ and then iterate over the resulting rows/records, printing out user ids and emails.
+
+That's it.
+
+=== jOOQ and CRUD queries
+
+This short guide cannot give you a comprehensive explanation on every possible jOOQ query, so let's have a look at some simple, common queries to get a basic understanding.
+
+Do keep in mind, that jOOQ queries read almost exactly like the corresponding SQL query, so without strong SQL skills you will run into problems.
+
+=== SQL select where
+
+To execute a simple _select * from USERS where id = :id_ you would execute this query:
+
+[source,java]
+----
+UsersRecord record = dslContext.selectFrom(USERS)
+                .where(USERS.ID.eq(id))
+                .fetchAny();
+// do something with record.getEmail()
+----
+
+With just a tiny change you would turn the query into _select * from USERS where id in (:ids)_:
+
+[source,java]
+----
+Result<UsersRecord> userRecords  = dslContext.selectFrom(USERS)
+                .where(USERS.ID.in(ids))
+                .fetch();
+// (for-loop over userRecords)
+----
+
+=== SQL Joins
+
+Let's have a look at joining two tables, like: _select * from USERS u inner join PAYMENTS p on u.id = p.user_id_:
+
+[source,java]
+----
+Result<?> result = dslContext.select()
+                         .from(USERS.join(PAYMENTS)
+                                     .on(PAYMENTS.USER_ID.eq(USERS.ID)))
+                         .fetch();
+// (for-loop over join records)
+----
+
+=== SQL update and delete
+
+Finally, deletes (_delete from USERS where id = 1_) or updates (_update USERS set email = :email, username = :username where id = 1_) look like this:
+
+[source,java]
+----
+dslContext.delete(USERS)
+      .where(USERS.ID.eq(1))
+      .execute();
+----
+
+[source,java]
+----
+dslContext.update(USERS)
+      .set(USERS.USERNAME, "John Rambo")
+      .set(USERS.EMAIL, "john@rambo.com")
+      .where(USERS.ID.eq(1))
+      .execute();
+----
+
+mb_ad::jooq_course[]
+
+=== Summary
+
+Now you might understand why jOOQ calls itself _typesafe_ database library. It lets you write Java code that looks like SQL. With the benefit that your generated DSL knows that e.g. user ids have to be numbers, user names have to be strings etc.
+
+== How does jOOQ integrate with Spring?
+
+There's is nothing stopping you from using jOOQ in combination with https://www.marcobehler.com/guides/spring-framework[Spring]. There are however various levels of integration between jOOQ and the vast Spring ecosystem.
+
+=== @Transactional integration
+
+In Spring applications you usually use the @Transactional annotation to define database transaction boundaries. To make jOOQ take part in these transactions, you'll need to do https://www.jooq.org/doc/3.12/manual/getting-started/tutorials/jooq-with-spring/[some extra setup work].
+
+=== Spring Boot integration
+
+Spring Boot comes with a jOOQ autoconfiguration, which means it sets up the DSLContext and integrates jOOQ with Spring's transaction handling for you - without you having to do anything apart from adding the following dependency to your Spring Boot project.
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jooq</artifactId>
+    <version>2.2.2.RELEASE</version> <!-- or your appropriate Spring boot version -->
+</dependency>
+----
+
+Which then lets you do this:
+
+[source,java]
+----
+
+import static my.startup.Tables.*;
+
+@Service
+public class UserService {
+
+    @Autowired
+    private DSLContext dslContext; // <1>
+
+    @Transactional // <2>
+    public boolean registerUser(String email) {
+        UsersRecord existingRecord = dslContext.selectFrom(USERS)
+                .where(USERS.EMAIL.eq(email))
+                .fetchAny();
+        if (existingRecord != null) {
+            return false;
+        }
+
+        // register user etc.
+    }
+}
+----
+
+<1> Spring Boot creates the DSLContext automatically for you (dependent on a datasource).
+<2> jOOQ will take part in the Spring transaction demarcated by @Transactional.
+
+
+=== Spring Data
+
+There is currently no native Spring Data project for jOOQ, like https://spring.io/projects/spring-data-jdbc[Spring Data JDBC] or https://spring.io/projects/spring-data-jpa[Spring Data JPA]. Sorry.
+
+
+== How does jOOQ compare to other Java database frameworks?
+
+=== jOOQ vs Hibernate
+
+As already mentioned at the beginning of this guide, both are quite different. https://hibernate.org/[Hibernate] takes a Java-first approach, whereas you (usually) write your Java classes and mappings first. Then you think about your database (tables).
+
+jOOQ on the other hand is database or SQL first, it needs an existing database schema to work with and generate its Java classes from.
+
+There is however nothing stopping you from using *both libraries* in the *same project*. For a quick intro on how to do that, see this https://thoughts-on-java.org/hibernate-jooq-a-match-made-in-heaven/[excellent post from Thorben Janssen].
+
+=== jOOQ vs MyBatis
+
+https://blog.mybatis.org/[MyBatis] is a SQL templating language, where you write your SQL in XML files. For further information regarding the differences between the two, check out https://stackoverflow.com/questions/296587/light-weight-alternative-to-hibernate/4522144#4522144[this stackoverflow thread].
+
+MyBatis XML files look like this:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.mybatis.example.UserMapper">
+  <select id="selectUser" resultType="User">
+    select * from Users where id = #{id}
+  </select>
+</mapper>
+----
+
+Which lets you do this:
+
+[source,java]
+----
+// sqlsessionfactory is a myBatis specific entry point
+try (SqlSession session = sqlSessionFactory.openSession()) {
+    UserMapper mapper = session.getMapper(UserMapper.class);
+    User user = mapper.selectUser(1);
+}
+----
+
+=== jOOQ vs QueryDSL
+
+There's a certain overlap in what jOOQ and http://www.querydsl.com/[QueryDSL] do and QueryDSL also works with generated classes. Our example from above looks like this with QueryDSL:
+
+[source,java]
+----
+ // 'Q' classes are generated and let you access tables, columns etc
+QUser user = QUser.user;
+User john = queryFactory.selectFrom(user)
+  .where(user.id.eq(1))
+  .fetchOne();
+----
+
+To sum it up, in JPA-(Lucene/Mongodb/JDO) based environments QueryDSL is often a good choice, in SQL-based environments jOOQ is the better choice.
+
+Note however, that the QueryDSL has been quite stagnant for a while and is currently undergoing a project takeover.
+
+Also have a look at this (older) article comparing the two: https://blog.jooq.org/2014/05/29/querydsl-vs-jooq-feature-completeness-vs-now-more-than-ever/[QueryDSL vs. jOOQ].
+
+== Fin
+
+This guide is just a quick crash-course on what jOOQ can do for you and your project and how it compares to other choices.
+
+If you want to get practical experience with jOOQ, check out https://www.marcobehler.com/courses/26-jooq-learn-the-best-way-to-write-sql-in-java?utm_campaign=jooq_short_guide&utm_medium=jooq_short_guide&utm_source=jooq_short_guide[the jOOQ video course].
+
+If you have any comments or feedback, simply leave a comment below.
+
+Thanks for reading.

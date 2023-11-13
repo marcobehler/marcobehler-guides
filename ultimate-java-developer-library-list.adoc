@@ -1,0 +1,212 @@
+= The Ultimate Java Developer Library, Tool & People List
+Marco Behler
+2014-12-27
+:date: December 27, 2014
+:page-layout: layout-guides
+:page-icon: business_bulb-63
+:page-published: false
+:page-tags: ["java libraries"]
+
+Java developers are flooded with a plethora of libraries and tools for their day-to-day work. We compiled a little list of stuff that we use everyday in primarily business line development (CRM, banking, web dev etc.) and that we can wholeheartedly recommend. There’s also a very opinionated section of people that we’d like to give some props to, if you are not on it, give us a shout ;)
+
+Please feel free to comment or post your own personal suggestions. Our personal New Year’s wish, though: Please link to this page when referencing this list and do not reproduce it in its entirety. Props go out to https://www.hanselman.com/[Scott Hanselman] for „inspiring“ this list.
+
+Happy new year!
+
+== Backend
+
+* https://github.com/brettwooldridge/HikariCP[HikariCP] A topic that you probably never think about, but HikariCP is now the connection pool on the JVM. Stop fighting with DBCP and other options and trust the website when it says: nothing is faster, nothing is more correct ;)
+
+* https://www.jooq.org/[Jooq] A fresh outlook on Java persistence, especially if you are fed up with heavier ORM choices and are not afraid, but in love with SQL.
+
+* https://hibernate.org/orm/[Hibernate] Chances are that you will encounter Hibernate sooner or later in a project and even though development has somewhat stalled, and there’s a lot of criticism of ORM in general, it is still a good library if used correctly.
+
+* https://dropwizard.io/[Dropwizard] Want to get your REST services up and running in no time, with a nice little stack of Java libraries behind? Give Dropwizard a try.
+
+* https://projects.spring.io/spring-boot/[Spring-Boot] Similarily, if you find yourself having to create new Spring projects over and over, try Spring-Boot, as it will considerably cut down your ramp-up time.
+
+* https://projects.spring.io/spring-batch/[Spring-Batch] Batch jobs are not the sexiest programmes in the world, but if you have to write them, Spring-Batch is a viable option.
+
+* https://spring.io/projects[Spring] Yep, there’s a lot of cruft, especially in the „lesser-known“ spring projects, but if you want to get a quick bang for your buck and simply be able to re-use a lot of stuff then you won’t get around Spring.
+
+* https://logback.qos.ch/[Logback] We love Ceki and all the work he has put into Logback and logging over the years. Logback is stable and mature and a good choice for logging.
+
+* https://logging.apache.org/log4j/2.x/[Log4j2] And now there’s also log4j2, which is also a reasonable choice for logging stuff. Please do not get sucked into a religious war and insanely non-actionable log framework-comparisons.
+
+* https://resteasy.jboss.org/[Resteasy] Another good choice for building RESTful Java applications.
+
+* https://square.github.io/dagger/[Dagger] Alright, alright, now Spring’s dependency injection is just too slow/cumbersome for you and you want dependency injection on steroids? Use Square’s Dagger!
+
+* https://google.github.io/dagger/[Dagger 2] And if Dagger is simply burning too much CPU cycles for you and you’re still left unsatisfied with the startup time, use Google’s fork Dagger 2 ;)
+
+== Frontend / CMS
+
+* https://www.adobe.com/solutions/web-experience-management.html[AEM / CQ5] Especially in Germany there’s a ton of CQ5 jobs at the moment, as a fair amount of big companies using it as a CMS to build websites. We’re not the biggest fans, but have to acknowledge its market share.
+
+* https://www.magnolia-cms.com/[Magnolia CMS] Magnolia on the other hand, especially with its Spring integration Blossom is a really nice JCR-based CMS. Give it a try.
+
+* https://wicket.apache.org/[Wicket] Wicket is one of the few Apache projects, which rock. Yes you might be scared of the session usage and components, but if you get behind your fears it is a rock solid choice.
+
+* https://raibledesigns.com/rd/entry/comparing_jvm_web_frameworks_at[Matt Raible’s list for the rest] If you feel pissed off because we did not mention web framework xyz, check out Matt Raible’s comparison of the remaining 9999999 Java web frameworks.
+
+== Database
+
+* https://jadira.sourceforge.net/usertype-userguide.html[Jadira Usertypes] Want to persist Joda Time/Money to a database using Hibernate? Use Jadira.
+
+* https://code.google.com/p/jdbcdslog/[JDBCslog] Most JDBC drivers do in fact support logging, but if you want to have a portable choice, use JDBCSlog or any of its forks. Beware, it is somewhat buggy, but most of the time it does the job.
+
+* https://www.liquibase.org/[Liquibase] Database migrations. What else can we say. We have it in production in a banking environment and it does everything it is supposed to do.
+
+* https://flywaydb.org/[Flyway] If you are scared of a tiny bit of xml however and just want to do SQL-only database migrations, you might wanna give Flyway a try.
+
+== Utilities, Utilities, Utilities
+
+* https://github.com/google/guava[Guava] In general, forget Apache Commons. Use Guava for collections, caching, primitives support, concurrency libraries, common annotations, string processing, I/O, and so forth.
+
+* https://github.com/kohsuke/args4j[Args4j] Yet another command line argument parsing library, this time from Kohsuke.
+
+* https://www.joda.org/joda-money/[Joda Money] A very good start if you have to do anything money related on the JVM and before Java 9 comes out.
+
+* https://github.com/Netflix/archaius[Archaius] Do you still have to reload your application because you changed a .properties file? Check out Netflix’s Archaius, which is a hell of a configuration management library.
+
+* https://www.joda.org/joda-time/[Joda Time] Cannot use Java 8 and its new date api? Then use Joda time.
+
+* https://jamonapi.sourceforge.net/[Jamon] The Java Application Monitor (JAMon) is a free, simple, high performance, thread safe, Java API that allows developers to easily monitor production applications.
+
+* https://freemarker.org/[Freemarker] We didn’t want to mention Freemarker here, as we have seen way too many Freemarker stack traces over the years, but no matter how you put it, Freemarker is still an often used templating language.
+
+* https://jcommander.org/[JCommander] Although somewhat dead and somewhat buggy, JCommander still does an ok job when you want to parse command line arguments.
+
+* https://dev.eclipse.org/mhonarc/lists/jetty-announce/msg00060.html[Jetty] We’re huge fans of jetty, especially as an embedded http server. And with version 9.1 - see the link - it even got shockingly fast ;)
+
+* https://www.jpos.org/[JPos / JCard] For payment/credit-card dev check out the ISO–8583 implementation.
+
+* https://code.google.com/p/reflections/[org.reflections] A reflections library++.
+
+* https://www.jcraft.com/jsch/[Jsch] If you want to do anything SSH related on the JVM, chances are you will stumble upon Jsch (or net.schmizz)
+
+* https://github.com/zeroturnaround/zt-zip[Zt-ZIP] There’s a ton of ways to zip/unzip stuff in Java, but Zeroturnaround’s is one of the nicer ways that we’ve found.
+
+== Resilience
+
+* https://github.com/Netflix/Hystrix[Hystrix] A huge recommendation from us: Hystrix is a latency and fault tolerance library designed to isolate points of access to remote systems, services and 3rd party libraries, stop cascading failure and enable resilience in complex distributed systems where failure is inevitable.
+
+* https://github.com/Netflix/SimianArmy/wiki/Chaos-Monkey[Chaos Monkey] Another huge recommendation. Let chaos monkey run against your production servers like Netflix does and see how well you can recover :)
+
+== Bean Mapping
+
+* https://modelmapper.org/[ModelMapper] The new kid on the block: Simple, Intelligent, Object Mapping.
+
+* https://dozer.sourceforge.net/[Dozer] Another way to map your Java beans.
+
+* https://commons.apache.org/[BeanUtils] The oldest way known to man to map and copy your Java beans ;)
+
+== Testing
+
+* https://openjdk.java.net/projects/code-tools/jmh/[Java Micro Benchmark] If you want to publish any sort of meaningful Java (Micro)Benchmark, use JMH!
+
+* https://testng.org/doc/index.html[TestNG] Although we disagree with Cedric on a couple of points, his TestNG library is, apart from JUnit, one of the de-facto unit test tools in Java land.
+
+* https://code.google.com/p/awaitility/[Awaitility] Need to do asynchronous testing and have already written a bunch of boiler plate testing code? Forget it and use this: `await().atMost(5, SECONDS).until(costumerStatusIsUpdated());`
+
+* https://joel-costigliola.github.io/assertj/[AssertJ] Yep, there’s a ton of other assertion libraries on the JVM, but AssertJ is one of the nicer ones.
+
+* https://github.com/cucumber/cucumber-jvm[Cucumber-JVM] We are also somewhat in love with the JVM port of cucumber, making „BDD fun“.
+
+* https://github.com/mockito/mockito[Mockito] Need to mock/stub objects? No way around mockito.
+
+* https://code.google.com/p/rest-assured/[Rest-Assured] A good library for testing and validating your REST services.
+
+* https://code.google.com/p/subethasmtp/[Wiser / Subethamail] If you need a lightweight smtp-server for your test-code, use Wiser.
+
+== Marshalling/Unmarshalling/Parsing
+
+* https://jaxb.java.net/[Jaxb] Not a library, but a specification and an, in our opinion, complex and cumbersome one. Still, you sooner or later will be in a project which is Jaxb’d.
+
+* https://projectmanagernews.com/general/most-important-projects-codehaus/[XStream] A simple library to serialize objects to XML and back again.
+
+* https://projectmanagernews.com/general/most-important-projects-codehaus/[Jackson] One of the best JSON marshallers/unmarshallers out there, can also do XML, a bunch of other data formats and has a ton of extension modules.
+
+* https://github.com/brettwooldridge/HikariJSON[Hikari-JSON] Still waiting for it, but Brett announced that it is gonna kick every other JSON librarie’s butt ;)
+
+* https://jsoup.org/[JSoup] JSoup is fantastic for parsing HTML in Java with the best of DOM, CSS, and jQuery.
+
+== Messaging / Distributed / Routing
+
+* https://hazelcast.com/[Hazelcast] Need distributed, in-memory data for a tiny cache or similar? Use Hazelcast.
+
+* https://activemq.apache.org/[ActiveMQ] There’s also a gazillion of possibilities to do messaging on the JVM, but you cannot go really wrong with ActiveMQ (or Apollo)
+
+* https://camel.apache.org/[Camel] Even though we think it is overkill in a lot of situations, camel can actually make routing messages, events or other..things ;) quite nice
+
+== People of the year
+
+[NOTE]
+Take this list light-heartedly, yep there was only space for 5 and this year it is quite database heavy :)
+
+* https://github.com/lukaseder[Lukas Eder] Lukas is our own personal hero this year, check out his blog and subscribe to his newsletter and give his JooQ library a try.
+
+* https://github.com/brettwooldridge[Brett Wooldrige] Brett is doing insanely good work with HikariCP, but even more you should check out his FAQ pages, where you’ll get a ton of knowledge on how connection pooling etc works.
+
+* https://winand.at/[Markus Winand] If you haven’t already, buy his book „SQL Performance Explained“.
+
+* https://www.jetbrains.com/[JetBrains] We love everything Jetbrains does and have most of their tools. Stop using Eclipse, Jenkins and all the Atlasssian stuff already! ;)
+
+* https://www.youtube.com/watch?v=LrDnuvHfBr4[Larry Ellison] Is your question: Are we a loser? NO! KNOW WHAT THEY USE? THEY USE ORACLE!
+
+== Build
+
+* https://maven.apache.org/[Maven] Love it or hate it, but as a build tool Maven is gonna stay.
+
+* https://www.gradle.org/[Gradle] But if you are fed up with Maven, give Gradle a try. IDE integrations have gotten better this year and even though the number one complaint we hear is „people are going to shoot themselves even more in the foot than with maven“, we think you should stop complaining and RTFM ;)
+
+* https://pantsbuild.github.io/[The Pants] If you want to go for a completely new kid on the block, check out Pants.
+
+== Languages
+
+* https://kotlinlang.org/[Kotlin] You read the point above with our unconditional Jetbrains love? In all seriousness, Kotlin , as long as you are IntelliJ IDEA based, is a great JVM language.
+
+* https://www.scala-lang.org/[Scala] If it wasn’t for the compiler speed…;)
+
+* https://www.oracle.com/technetwork/java/javase/overview/java8-2100321.html[Java 8] Nothing really we can say, but anyway Java 8  is not going to help if your client is stuck on 1.4 for whatever bogus reasons, huh? ;)
+
+== Http Stuff
+
+* https://square.github.io/okhttp/[OkHttp] A good new http client.
+
+* https://hc.apache.org/httpcomponents-client-ga/[Apache Http Client] The default choice for http.
+
+== Repositories
+
+* https://www.jfrog.com/open-source/[Artifactory] Nice functionality, looks horrible. Get a designer jfrog!
+
+* https://www.sonatype.org/nexus/[Nexus] Looks nice and does what it is supposed to do.
+
+== Databases
+
+* https://www.oracle.com/database/index.html[Oracle] Disregarding how much it costs, Oracle is a rock solid database. This year we played a lot with selecting data straight from Oracle as XML and pushing it directly into the HttpServletOutputstream (crazy stuff), push updates and more. You gotta love the features noone knows about.
+
+* https://www.h2database.com/html/main.html[H2] The best embedded database we know. Thomas Mueller, you rock!
+
+* https://www.postgresql.org/[Postgres] Postgres is getting better with every release and they are also doing fantastic work!
+
+== NoSql!
+
+Just NO! ;)
+
+== JVM
+
+* https://zeroturnaround.com/software/jrebel/[JRebel] Zeroturnaround is so active in marketing, chances are you will have heard of JRebel by now. Yep, no more (or fewer) restarts of your Java application, less waiting times.
+
+* https://chrononsystems.com/[Chronon] Chronon is such a nice idea, it is basically a DVR for your Java programmes. A pity it still has a ton of problems with generated byte code and is somewhat unusable for us in non-trivial projects.
+
+* https://plumbr.eu/[Plumbr] If you are experience memory leaks etc. give Plumbr a try. Not only is the tool good, but they actually have excellent customer support and will help you analysing stuff.
+
+== IDEs
+
+* https://www.jetbrains.com/idea/[IntelliJ IDEA] The.Best.IDE.In.The.World.Period.
+
+* https://eclipse.org/[Eclipse] If you are too poor to afford IDEA, keep using Eclipse ;)
+
+
+And that’s it for this year! Enjoy and let us know your recommendations!

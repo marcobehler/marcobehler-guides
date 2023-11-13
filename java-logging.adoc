@@ -1,0 +1,728 @@
+= How To Do Logging In Java
+Marco Behler
+2020-12-09
+:revdate: 2020-12-09
+:page-layout: layout-guides
+:page-icon: files_paper
+:sourcedir: /mnt/c/dev/TODO
+:linkattrs:
+:page-image: "/images/guides/undraw_detailed_analysis_xn7y.png"
+:page-description: You can use this guide to discover, understand and use the right Java logging library for your applications, like Log4j2, Logback, or java.util.logging.
+:page-description2: Logging 'seems' like a very simple topic, but can be rather tricky in practice and is not covered anywhere in sufficient detail. Read this guide to fully make sense of the Java logging landscape.
+:page-published: true
+:page-serieslink: https://www.marcobehler.com/courses/16-java-logging-masterclass?pk_campaign=Guide-Companion
+:page-seriesdescription: "Watch this guide as screencasts"
+:page-tags: ["java", "logging"]
+:page-commento_id: /guides/a-guide-to-logging-in-java
+
+
+== Introduction
+Sooner or later, every Java application needs logging.
+
+It could be that you simply want to log your system's state or user actions to a file, so your operations staff has a way of knowing what's happening.
+
+[source,java]
+----
+logger.info("Application successfully started on port 8080");
+----
+
+It could be that you need to record error messages whenever an exception happens and then send an e-mail or text message to a human for urgent intervention.
+
+[source,java]
+----
+logger.error("Database connection is down", exception);
+----
+
+Or one of your batch jobs might want to record and send warnings to a central, GUI-based log server, whenever it fails to import some records of a csv file.
+
+[source,java]
+----
+logger.warn("Invalid bank account number for record=[{}]", 53);
+----
+
+No matter what you want to do, you'll need to make sure to have an appropriate logging library and then configure and use it correctly.
+
+Unfortunately, the Java universe has a plethora of logging libraries available (see https://www.marcobehler.com/episodes/109-understanding-java-logging-hell-the-basics[this video] for a nice overview of Java logging hell) and a developer should have a rough understanding of why there are that many options and when to use which option.
+
+Let's find out.
+
+== Legacy Logging Libraries
+
+To understand recent developments with Java's logging libraries, it makes sense to meet & understand the dinosaurs - Java's oldest logging libraries, that you will still find in some production environments today.
+
+=== java.util.logging (JUL)
+
+Since Java 1.4 (2002), the JDK comes bundled with its own logging 'framework', called java.util.logging, often abbreviated to JUL. Here's an example of how you would log things with JUL:
+
+[source,java]
+----
+// java.util.logging
+java.util.logging.Logger logger =  java.util.logging.Logger.getLogger(this.getClass().getName());
+logger.info("This is an info message");
+logger.severe("This is an error message"); // == ERROR
+logger.fine("Here is a debug message"); // == DEBUG
+----
+
+As is the case for every logging library, first you get a Logger for a specific class or package, and then you can log statements. You might think that the log levels 'severe' and 'fine' look weird, but they basically correspond to the 'error' and 'debug' levels of all modern Java logging libraries.
+
+And of course, you can configure your loggers with so called handlers, like a FileHandler (which writes log statements to files) or a ConsoleHandler (which writes to System.err).
+
+[source,java]
+----
+FileHandler fileHandler = new FileHandler("status.log");
+logger.addHandler(fileHandler);
+----
+
+
+So, you might be asking, if there's JUL, why would anyone need another logging framework?
+
+While JUL does the job, there have been https://stackoverflow.com/questions/11359187/why-not-use-java-util-logging[discussions] about its shortcomings in the past, spanning its inconsistent API, slow performance, lack of (complex) configuration options, documentation etc - which ultimately
+lead to people developing and using other logging frameworks.
+
+=== Log4j (v1)
+
+For a long time, the most popular choice for logging in Java land was https://logging.apache.org/Log4j/1.2/[Log4j (version 1)], which was initially released in 2001 and maintained until 2015. In fact, you'll still find it being used in a fair number of corporate projects, in 2018.
+
+With Log4j, the logging example from above would look like this:
+
+[source,java]
+----
+// Log4j V1
+org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(MyClass.getClass().getName());
+logger.info("This is an info message");
+logger.error("This is an error message");
+logger.debug("Here is a debug message");
+----
+
+It's not only that Log4j has sane log level names, like 'error' and 'debug'. It also comes with a ton of different and clever appenders, like SMTPAppender (to e-mail log events), SyslogAppenders (to send events to a remote syslog daemon), JdbcAppenders (to send them to the database) and https://stackoverflow.com/a/36482[many more].
+
+Also it gives you a fair amount of control over what exactly a log message should look like, with the help of https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html[PatternLayouts]. So, the same log event in your Java application, could be printed out in a log file like so, depending on the layout:
+
+[source,shell]
+----
+# contents of status.log
+
+[INFO] 2012-11-02 21:57:53,662 MyLoggingClass - Application succesfully started on port 8080
+
+# or
+
+2010.03.23-mainThread --INFO -MyLoggingClass:Application succesfully started on port 8080
+
+# or other endless possibilities
+----
+
+Log4j does the job quite well, but got superseded by Log4j2 in the past years, which is not fully compatible with Log4j1, hence we will talk about it in the next section.
+
+=== Apache Commons Logging (JCL)
+
+Around the same time, in 2002, another library popped up, called https://commons.apache.org/proper/commons-logging/[JCL], which goes by two names. Jakarta Commons Logging or Apache Commons Logging.
+
+The interesting thing about JCL is, that it is not a logging framework implementation itself. Rather, it is an interface for other logging implementations. What does that mean?
+
+As you might have guessed, the logging code itself stays fairly simple, only instead of referencing JUL or Log4j classes, you now reference the JCL classes - provided you have the JCL library on your classpath.
+
+[source,java]
+----
+// Apache Commons Logging
+org.apache.commons.logging.Log log = org.apache.commons.logging.LogFactory.getLog(MyApp.class);
+log.info("This is an info message");
+log.error("This is an error message");
+log.debug("Here is a debug message");
+----
+
+So, your code only uses JCL specific classes. But then the actual logging is done by another logging framework, and it doesn't matter if it is Log4j, JUL or (the long defunct) https://avalon.apache.org/closed.html[Apache Avalon].
+
+That means you need another library, like Log4j, on your classpath and configure these two to work together.
+
+*Why would anyone want to do this?*
+
+Why wouldn't you want to use Log4j directly, instead? There's one major use-case, which is writing libraries:
+
+When writing libraries, you simply do not know which logging framework a user of your library wants to use in his own application. It therefore makes sense to write your library to use a logging interface - and then the user can plug in any logging implementation that he or she wants, whenever he deploys his own application.
+
+*Where's the catch?*
+
+The problem with JCL is, that it relies on https://articles.qos.ch/thinkAgain.html?[classloader hacks] to find out which logging implementation it should use - at runtime. And that can lead to a lot of pain. In addition, you'll find that the API is somewhat inflexible, that it comes with a fair amount of cruft, and there's simply better alternatives out there, nowadays.
+
+== Modern Logging Libraries
+
+=== SLF4J & Logback
+
+At some point, the original creator of Log4j, Ceki Gülcü, decided to split from the Log4j project and create a successor, which was not called Log4j2, but https://logback.qos.ch/[Logback]. You can read about what he tried to make better with Logback https://logback.qos.ch/reasonsToSwitch.html[here].
+
+Suffice to say, that Logback is a mature and solid logging library, with a ton of features, of which auto-reloading of configuration files in production is one that developers seem to remember the most.
+
+Somewhat in parallel, he also started writing the Simple Logging Facade for Java, also known as https://www.slf4j.org/[SLF4J], which is very similar to the Apache Commons Logging 'bridging' library above, just with a better implementation. Let's see what that means:
+
+To get started with SLF4J, you only need one library on the classpath, the slf4j-api dependency (https://www.marcobehler.com/episodes/110-slf4j-how-to-set-it-up[see screencast] for the following section). If you are using a dependency management tool like https://maven.apache.org/[Maven], then you would add the following dependency to your dependencies section:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>1.7.30</version>
+</dependency>
+----
+
+Having the API on your classpath will allow you to write log statements like the following:
+
+[source,java]
+----
+// SLF4J
+org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(MyClass.class);
+logger.info("This is an info message");
+logger.error("This is an error message");
+logger.debug("Here is a debug message"); //  you do not need 'logger.isDebugEnabled' checks anymore. SLF4J will handle that for you).
+----
+
+Just like JCL, SLF4J cannot do logging itself. It needs a logging library to do the actual logging, like Log4j, JUL, Logback etc. So, say you want to use Log4j v1, you would then need the slf4j-log4j12 binding library in your classpath:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-log4j12</artifactId>
+    <version>1.7.30</version>
+</dependency>
+----
+
+That dependency will transitively pull in Log4j (v1) for you and also make sure that SLF4J logs 'through' Log4j. If you are interested in how this works, read the section about https://www.slf4j.org/manual.html[bindings] in the SLF4J manual.
+
+Other libraries, like Logback, don't need a binding library, because they implement SLF4J natively, so you can simply use the slf4j-api dependency, drop in the logback-classic jar as well, and you can log through Logback.
+
+[source,xml]
+----
+<dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.2.3</version>
+</dependency>
+----
+
+The beauty of this approach is, that your code only knows SLF4J. There are no references to Log4j, Logback or Jul. And if you are writing a library, that's even better. Because if your library uses SLF4J, then the end-user of your library can decide
+to log either with Log4j, or Logback, or whatever library he wants. Because that choice can simply be made by adding or removing a couple of jars to or from the classpath.
+
+*Hold on, aren't we missing something?*
+
+Things get interesting, whenever you are using 3rd party libraries, that are hardcoded to use a specific logging library. Imagine you are using a PDF
+generator library, which is hardcoded to use Log4j. You are also using an e-mail sending library, which uses JUL.
+Your own application uses SLF4J, but you cannot just go and change the source code of these libraries to use SLF4J as well.
+
+What to do now?
+
+Thankfully, the SLF4J creators thought about that use-case as well (see https://www.marcobehler.com/episodes/112-routing-log4j-logback-commons-logging-and-jul-through-slf4j-in-the-same-project[screencast here]). Let's see what that looks like, by looking at the Maven dependencies first:
+
+Whenever you pull in a 3rd party-library that uses Log4j, it will, obviously, pull in the Log4j dependency. The Log4j dependency looks like this:
+
+[source,xml]
+----
+<dependency>
+    <groupId>log4j</groupId>
+    <artifactId>log4j</artifactId>
+    <version>1.2.17</version>
+</dependency>
+----
+
+You then need to make sure to *exclude* that dependency from your project and use the following drop-in replacement instead:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>log4j-over-slf4j</artifactId>
+    <version>1.7.30</version>
+</dependency>
+----
+
+Here's the trick: Inside that log4j-over-slf4j.jar, you'll find classes like org.apache.log4j.Logger, but they have nothing to do with Log4j!
+Instead, these are SLF4J specific classes, i.e. your code 'thinks' it calls Log4j, but instead everything gets routed to SLF4J. (The same is true for the other 'over-slf4j' libraries, except for the JUL library, which you can read https://www.slf4j.org/legacy.html[about here]).
+
+Which in turn means, that you, as the end-user of a library, can use whatever logging library you want, even though the original library creator wanted you to use
+Log4j specifically.
+
+*Real-Life*
+
+So, depending on what you are building and the third-party libraries you are using, you might end-up with the following libraries in your classpath:
+
+* The SLF4J API
+* Your SLF4J implementation, like Logback, or Log4j, etc.
+* One or multiple bridging libraries, like log4j-over-slf4j, jul-to-slf4j, jcl-over-slf4j etc.
+
+*##Main Takeaway##*
+
+With SLF4J, you code to the API, and can choose the implementation (Log4j, Logback etc.) later (compile time). In addition, you can use bridging libraries to make legacy
+3rd party libraries 'speak' SLF4J.
+
+While all of this might look scary for beginners, it all makes sense with a bit of experience.
+
+=== Log4j2
+
+One might think that SLF4J, with all the surrounding logging libraries, would cover almost all logging needs. Seems to be not so. In 2014, a successor to the Log4j (v1) library was released, called https://logging.apache.org/log4j/2.x/[Log4j2] - being a complete rewrite and of course heavily inspired by all other existing logging libraries.
+
+Additionally, just like SLF4J, or JCL, or Commons Logging, Log4j2 can be used as a bridge, as it comes with two dependencies:
+
+An API dependency:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+    <version>2.14.0</version>
+</dependency>
+----
+
+And the actual logging implementation:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-core</artifactId>
+    <version>2.14.0</version>
+</dependency>
+----
+
+The API dependency works with a variety of other logging frameworks, just like SLF4J or JCL do. You can drop in Log4j2's own logging implementation, use an SLF4J implementation, or use one of the bridging/adapter libraries
+to setup your logging in whatever way you wish. Your code, however, will only reference the Log4j2 classes like so:
+
+[source,java]
+----
+// Log4j (version 2)
+org.apache.logging.log4j.Logger logger = org.apache.logging.log4j.LogManager.getLogger(MyApp.class);
+logger.info("This is an info message");
+logger.error("This is an error message");
+logger.debug("Here is a debug message");
+----
+
+
+If you have read the previous sections, you might conclude that SLF4J and Log4j2 have a lot in common and it is unclear, why one would want to use Log4j2 instead of just sticking with SLF4J.
+
+The creators of Log4j2 have tried to answer this question themselves https://logging.apache.org/log4j/2.0/faq.html#api-tradeoffs[here], with the main difference seemingly being the performance (AsyncLogger, Garbage Collections] and the slightly
+better API (Abilities to log objects, not just strings, Lambda Support etc).
+
+Though it should be said that, while these reasons might make a difference in complex high-load applications, developers working on 'normal' applications likely won't notice a difference.
+
+=== Jboss Logging
+
+Talking about logging libraries wouldn't be complete, without mentioning http://docs.jboss.org/hibernate/orm/4.3/topical/html/logging/Logging[JBoss-Logging]. It's yet another logging bridge, very similar to SLF4J or JCL, so you'll have to use
+it with another logging implementation, or even SLF4J itself.
+
+It's main claim to fame, compared to these other logging bridges, seems to be its https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=2ahUKEwjsmP2d1a3dAhWFw4sKHXgeCNwQFjAAegQIARAB&url=http%3A%2F%2Fdocs.jboss.org%2Fhibernate%2Form%2F4.3%2Ftopical%2Fhtml%2Flogging%2FLogging&usg=AOvVaw2-JUSOliyacyYP0gRM4HnM[internationalization features].
+Other than that there seems to be very little reason to base your project entirely on jboss-logging, though you will find projects like http://hibernate.org/[Hibernate] use it, because both libraries are developed under the https://www.redhat.com/de[RedHat umbrella].
+
+== How to log
+
+Once you decided on your favourite logging framework, it's time to _actually use_ your logger as well. Which brings us to the question: *How* should you log?
+
+=== A small, technical nit-pick
+
+If you have a look across different Java projects in your organization, or even just look at one project, you'll likely see a variety of ways that people try to get a Logger instance: The class that enables them to log in the first-place.
+
+This can take the looks of:
+
+[source,java]
+----
+// in class 1
+private Logger LOG = LoggerFactory.getLogger(...);
+
+// in class 2
+private static final Logger LOGGER = ....;
+
+// in class 3
+private static Logger log = Logger.getLogger(...);
+
+// in class 4
+private Logger LOG_INSTANCE = ...;
+
+// etc. etc.
+----
+
+Now what _should_ this look like instead? To which there is an easy answer. If the class you are creating, and the method you are calling to create that class, both have the word "logger" inside, then call the variable 'logger'.
+
+Don't fret too much about static or non-static, final or non-final, just make sure to be homogeneous in your choice, throughout your entire project.
+
+And finally, there is really no need to UPPER_CASE your logger just for the sake of it, certainly not as the only exception in your codebase.
+
+
+=== Log Levels & Files
+
+An insanely interesting topic is: To which log level should you _actually_ log to? You have the choice of TRACE, DEBUG, INFO, WARN, ERROR, FATAL and a fair amount of developers
+feel unsure of when to use which one.
+
+Here's a general approach that I've seen used successfully in a few places, but note that this is not written in stone (see https://www.marcobehler.com/episodes/132-what-log-levels-to-use-when-logging-in-your-java-applications[screencast here]). Make changes to these guidelines where appropriate, but make sure you have a solid use case and reasoning for it. And most importantly, make sure that
+your developers and operations guys are on the same page.
+
+Now let's first have a look at the "error group" log levels individually, and what you might use them for.
+
+==== FATAL
+
+_Anything at this level means your Java process cannot continue and will now terminate._
+
+The least interesting log-level, as you are very unlikely to use it in your application and API's such as SLF4J https://www.slf4j.org/faq.html#fatal[don't even support it directly].
+
+==== ERROR
+
+_A request was aborted and the underlying reason requires human intervention ASAP._
+
+==== WARN
+
+_A request was not serviced satisfactorily, intervention is required soon, but not necessarily immediately._
+
+
+==== What does that mean in practical terms?
+
+For assessing entries against ERROR & WARN you can ask the question "what is the action required" and if it doesn't sound like an "OMG! Get that action covered now!" type of event, it gets demoted to a lesser level for not meeting criteria.
+
+Think about you pushing a new feature of your shiny fintech (bank) application to production, which unfortunately triggers the infamous Hibernate LazyLoadingException whenever
+a user tries to display the recent transactions for his bank account. That sounds like a pretty strong OMG situation, and you'll want these errors to be logged as "errors" - and trigger appropriate reactive measures.
+
+[source,bash]
+----
+2018-09-11 08:48:36.480 ERROR 10512 --- [ost-startStop-1] com.marcobehler.UserService        : Retrieving transaction list for user[id={}] failed
+
+org.hibernate.LazyInitializationException: failed to lazily initialize a collection of role: User.transactionDetails, could not initialize proxy - no Session
+	at org.hibernate.collection.internal.AbstractPersistentCollection.throwLazyInitializationException(AbstractPersistentCollection.java:582)
+	at org.hibernate.collection.internal.AbstractPersistentCollection.withTemporarySessionIfNeeded(AbstractPersistentCollection.java:201)
+	at org.hibernate.collection.internal.AbstractPersistentCollection.initialize(AbstractPersistentCollection.java:561)
+	at org.hibernate.collection.internal.AbstractPersistentCollection.read(AbstractPersistentCollection.java:132)
+	at org.hibernate.collection.internal.PersistentBag.iterator(PersistentBag.java:277)
+	at java.lang.Iterable.forEach(Iterable.java:74)
+	at LibraryTest.spring_test(LibraryTest.java:78)
+    ...
+----
+
+Then think about a batch job, which imports transactions on a daily or weekly basis. As is the case quite often, some records might be malformed and thus cannot be imported into the system.
+Someone, a person, needs to have a look at these records manually and fix them. But likely this isn't as time-sensitive and urgent as the error case, so
+you'll choose to log these items with the WARN level.
+
+[source,bash]
+----
+2018-09-11 00:00:36.480 WARN 10512 --- [ost-startStop-1] com.marcobehler.BatchJob        : Could not import record[id=25] from csv file[name=transactions.csv] because of malformed[firstName,lastName]
+----
+
+The main reasoning behind keeping ERROR and WARN tags clean is that it makes monitoring and hence reacting to those events much simpler.
+
+Or in simple terms: Make sure to wake-up your operations guy at 3am in the morning for the right (kind of) error.
+
+
+==== INFO
+
+Info is the log level developers probably feel most 'comfortable' using and in practice you'll find that developers print out a ton of statements with the
+INFO level, from client activities (webapps), progress information (batch jobs) to quite intricate, internal process flow details.
+
+Again, it can be a blurry line to decide what should be INFO and what should be DEBUG, but in general, process flow details should rather be logged with the debug level, instead of
+completely replicating a user's journey through your application in an info.log.
+
+Historically, the main reason for logging out almost everything as INFO was, that it has been
+difficult to change log levels on the fly for applications, without having to restart (bounce) said application. Sometimes, organizational silos
+between developers and operations staff are also too large, to effortlessly and swiftly change log levels. Hence, developers chose to be on the safe-side and print out 'more', than less, to the console
+to be able to trace entire calls through the system.
+
+Enough introduction. Let's have a look at some examples.
+
+Obviously, you can use the INFO level to log out application status, like the following:
+
+[source,bash]
+----
+2018-09-11 08:46:26.547  INFO 8844 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+----
+
+But another, intriguing way to think about the INFO level is as an additional (weak) error case: A request was not serviced satisfactorily but resolution details have been passed to the requestor and no proactive support is required.
+
+An example info would be "user login failed, incorrect username or password".
+
+[source,bash]
+----
+2018-09-11 08:46:26.547  INFO 8844 --- [           main] com.marcobehler.UserService  : User with id[=45] tried to login with wrong username/password combination
+----
+
+You might want to log these because the user (through layers of support) might come to ops asking questions about why they cannot use the application. The ops staff will be able to see the reason in the logfile (even although the user has already been given this info via the app front end).
+
+Finally, there's two more log levels, 'debug' and 'trace'. There have been quite a few heated discussions on the need for a https://www.slf4j.org/faq.html#trace[trace level online], and SLF4J introduced the trace log level only in one of its later (newer) versions - after many community requests.
+
+Once more, the line between these two can be blurry, but let's have a quick look at them:
+
+*DEBUG*
+
+Advanced level detail of internal process flows. This is only turned on during investigation of specific issues and turned off again after. Depending on the logging library used, it might not be possible to do this without bouncing (restarting) the application, which might not be acceptable.
+
+[source,bash]
+----
+2018-08-01 05:05:00,031 DEBUG - Checking uploaded XML files for valid structure [...]
+2018-08-01 05:06:00,031 DEBUG - Checking uploaded XML files for valid content [...]
+2018-08-01 05:07:00,031 DEBUG - Masking inputs for XML file[id=5] [...]
+2018-08-01 05:08:00,031 DEBUG - Replacing [...] XML sections for file[id=5] with [...]
+...
+2018-08-01 05:09:00,142 DEBUG - Forwarding XML file to archiving service
+----
+
+
+*TRACE* - More details than debug or reserved for use in specific environments
+
+You could see the trace level as even more detailed as the debug level, or you could decide to couple the trace level with certain environments, i.e. the DEV or TEST environment, where developers can go crazy and feel free to log out whatever they want and know that 'trace' will always be disabled on production. (Although this could also easily be achieved with different log configurations/profiles)
+
+Nevertheless, if you want to have a look at a framework that uses the TRACE logging framework diligently, then just have a look at the https://spring.io/[Spring Framework].  When using Spring's transaction management, you will only be able to see the real database transaction boundaries, when you enable the TRACE logging level:
+
+[source,bash]
+----
+2018-08-01 05:05:00,031 TRACE - Getting transaction for [com.marcobehler.BitcoinApp.mine]
+
+... your own log statements./..
+
+2018-08-01 05:05:00,142 TRACE - Completing transaction for [com.marcobehler.BitcoinApp.mine]
+----
+
+
+==== Log Files
+
+When talking about log files, a common approach is to have separate files for separate use cases. That means an application will normally log to more than one logfile.
+
+You could have an _error.log_ (with a filename pattern of <appname>.<instance-name>.YYYYMMDD.ZZZ.error.log), which is consumed by monitoring and alerting system and by operations staff. Obviously, you'd only want entries in that
+log file you want to alert on, i.e. your ERROR or WARN statements.
+
+You could have another log file called _info.log_ or _status.log_ (with a filename pattern of <appname>.<instance-name>.YYYYMMDD.ZZZ.status.log), which contains the aforementioned information about application progress or user activity, as well as e.g. a trace.log file whenever you want to go crazy with logging.
+
+When logging to separate files it makes sense to have a command line utility (like https://github.com/siom79/log-merger[log-merger], or just a plain old bash script) to merge these separate logfiles on the fly for a specific timestamp.
+
+Imagine you have two files:
+
+_error.log_
+[source,bash]
+----
+2015-08-29 15:49:46,641 ERROR [org.jboss.msc.service.fail] (MSC service thread 1-4) MSC000001: Failed to start service jboss.undertow.listener.default: org.jboss.msc.service.StartException in service jboss.undertow.listener.default: Could not start http listener
+	at org.wildfly.extension.undertow.ListenerService.start(ListenerService.java:150)
+	at org.jboss.msc.service.ServiceControllerImpl$StartTask.startService(ServiceControllerImpl.java:1948)
+	at org.jboss.msc.service.ServiceControllerImpl$StartTask.run(ServiceControllerImpl.java:1881)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+Caused by: java.net.BindException: Die Adresse wird bereits verwendet
+	at sun.nio.ch.Net.bind0(Native Method)
+	at sun.nio.ch.Net.bind(Net.java:436)
+	at sun.nio.ch.Net.bind(Net.java:428)
+	at sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:214)
+	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:74)
+	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:67)
+	at org.xnio.nio.NioXnioWorker.createTcpConnectionServer(NioXnioWorker.java:182)
+	at org.xnio.XnioWorker.createStreamConnectionServer(XnioWorker.java:243)
+	at org.wildfly.extension.undertow.HttpListenerService.startListening(HttpListenerService.java:115)
+	at org.wildfly.extension.undertow.ListenerService.start(ListenerService.java:147)
+	... 5 more
+----
+
+and
+
+_status.log_
+[source,bash]
+----
+2015-08-29 15:49:46,033 INFO  [org.xnio] (MSC service thread 1-3) XNIO version 3.3.1.Final
+----
+
+After running the log-merger utility, they can be viewed, on-the-fly, as follows:
+
+
+[source,bash]
+----
+[1] 2015-08-29 15:49:46,033 INFO  [org.xnio] (MSC service thread 1-3) XNIO version 3.3.1.Final
+[0] 2015-08-29 15:49:46,641 ERROR [org.jboss.msc.service.fail] (MSC service thread 1-4) MSC000001: Failed to start service jboss.undertow.listener.default: org.jboss.msc.service.StartException in service jboss.undertow.listener.default: Could not start http listener
+[0] 	at org.wildfly.extension.undertow.ListenerService.start(ListenerService.java:150)
+[0] 	at org.jboss.msc.service.ServiceControllerImpl$StartTask.startService(ServiceControllerImpl.java:1948)
+[0] 	at org.jboss.msc.service.ServiceControllerImpl$StartTask.run(ServiceControllerImpl.java:1881)
+[0] 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+[0] 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+[0] 	at java.lang.Thread.run(Thread.java:745)
+[0] Caused by: java.net.BindException: Die Adresse wird bereits verwendet
+[0] 	at sun.nio.ch.Net.bind0(Native Method)
+[0] 	at sun.nio.ch.Net.bind(Net.java:436)
+[0] 	at sun.nio.ch.Net.bind(Net.java:428)
+[0] 	at sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:214)
+[0] 	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:74)
+[0] 	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:67)
+[0] 	at org.xnio.nio.NioXnioWorker.createTcpConnectionServer(NioXnioWorker.java:182)
+[0] 	at org.xnio.XnioWorker.createStreamConnectionServer(XnioWorker.java:243)
+[0] 	at org.wildfly.extension.undertow.HttpListenerService.startListening(HttpListenerService.java:115)
+[0] 	at org.wildfly.extension.undertow.ListenerService.start(ListenerService.java:147)
+[0] 	... 5 more
+----
+
+
+You can of course choose also to log everything into one file from the beginning.
+
+There's one caveat however: Experience shows that developers often mistakenly assume that, just because log statements have a time/location correlation - which might run counter-intuitive, especially as we have just talked about merging log files.
+
+Here's an example: Imagine you have an application which uses Hibernate. It boots up to a certain point and then it hangs, you see no more log messages. The application simply doesn't start up.
+
+The last log message you see is the following:
+
+[source,bash]
+----
+2018-09-11 09:35:19.166  INFO 14620 --- [ost-startStop-1] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+----
+
+It's easy to assume that something must be broken with JPA or Hibernate, just because that's your last log message. In fact, it _could_ be Hibernate, but your application could also hang trying to boot up another part/third-party framework, that has not gotten around to log stuff out, yet.
+
+So be wary, when you come to quick conclusions, which happens often in high-pressure situations: When there's a severe bug on production. Correlation in the log file through location/timestamp doesn't automatically mean it _IS_ correlated, only that it _CAN_ be.
+
+=== MDC
+
+To make correlation of log statements strong, there's another important concept to know, especially if you are working with multiple distributed processes (microservices): The https://logback.qos.ch/manual/mdc.html[Mapped Diagnostic Context (MDC)] or https://logging.apache.org/log4j/2.x/manual/thread-context.html[Thread Context].
+
+Imagine you have a user-request coming in, that is routed to multiple, different microservices.
+When something goes wrong, a request fails, how do you know which log lines from which microservices correspond to that very request. Easy: You need a generated request-id that you want to log out with *every* log message.
+
+And because you are lazy, you don't want to have to manually log out that id, it should just work automatically. That's where the MDC comes in.
+
+Somewhere in your code, in an HTTP servlet-filter, you'll have something like this:
+
+[source,java]
+----
+MDC.put("requestId", "lknwelqk-12093alks-123nlkasn-5t234-lnakmwen");
+----
+
+That's enough. Just one call to a static method.
+
+Later, in your application code, you will continue logging as usual:
+
+[source,java]
+----
+logger.info("Hi, my name is: Slim Shady!");
+----
+
+You also need to configure your log library to log out the MDC variable with every log statement (see https://logback.qos.ch/manual/mdc.html[here]). Which will give you log messages that look like this:
+
+[source,bash]
+----
+[lknwelqk-12093alks-123nlkasn-5t234-lnakmwen] - Hi, my name is: Slim Shady!
+----
+
+Then it's very easy to correlate all corresponding log messages, you simply have to specify or search for the same request-id across all your log files or in your centralized logging server.
+
+
+=== Sensitive Information
+
+It goes without saying that you should avoid (read: must not) logging out sensitive information: User credentials (i.e. passwords) or financial information (like credit card numbers etc.) or similar sensitive user details.
+
+Depending on the complexity of your system, you might however not want to worry about fixing up every individual log statement in your system (though you might be forced to, by means of an audit), but have more of a generic solution that makes sure that certain information is masked - either partially or completely, depending
+on the security standards you need to adhere to.
+
+In the case of Log4j2 for example this means writing a custom https://logging.apache.org/log4j/2.0/log4j-core/apidocs/org/apache/logging/log4j/core/pattern/LogEventPatternConverter.html[LogEventPatternConverter], that masks log events according to your regulations.
+
+Obviously, a full masking solution is out of the scope of this guide, but you can get some pointers https://objectpartners.com/2017/09/26/masking-sensitive-data-in-log4j-2/[here] and https://stackoverflow.com/questions/16775253/how-masking-of-sensitive-data-is-achieved-using-slf4j-framework[here].
+
+
+=== Proactive Help
+
+Another topic that isn't really covered in detail anywhere, is _WHAT_ exactly to write inside your log statements. And that brings us to the concept of _proactive help_.
+
+A great example is the https://spring.io/projects/spring-boot[Spring Boot] framework. When you are building a web application with Spring Boot and start it up for testing, the application will run under port 8080, so you can access it in your browser from http://localhost:8080.
+
+Sometimes it happens, that you have another Spring Boot application or an older version of the same application already running on port 8080. Which means you cannot start up your application as that will fail. In older Spring Boot versions, they simply
+logged out the "raw" exception, which looks like this:
+
+[source,bash]
+----
+2018-09-11 09:35:57.062 ERROR 15516 --- [           main] o.apache.catalina.core.StandardService   : Failed to start connector [Connector[HTTP/1.1-8080]]
+
+org.apache.catalina.LifecycleException: Failed to start component [Connector[HTTP/1.1-8080]]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:167)
+	at org.apache.catalina.core.StandardService.addConnector(StandardService.java:225)
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.addPreviouslyRemovedConnectors(TomcatWebServer.java:256)
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.start(TomcatWebServer.java:198)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.startWebServer(ServletWebServerApplicationContext.java:300)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.finishRefresh(ServletWebServerApplicationContext.java:162)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:553)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:140)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:759)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:395)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:327)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1255)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1243)
+	at com.marcobehler.MarcobehlerRootApplication.main(MarcobehlerRootApplication.java:26)
+Caused by: org.apache.catalina.LifecycleException: Protocol handler start failed
+	at org.apache.catalina.connector.Connector.startInternal(Connector.java:1020)
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:150)
+	... 13 common frames omitted
+	...
+----
+
+Developers can of course make the mental translation needed to go from "Failed to start connector" -> "Another Spring Boot instance is running", but a better way would be what Spring Boot offers in newer versions:
+
+
+[source,bash]
+----
+2018-09-11  17:44:49.179 ERROR 24745 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   :
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Embedded servlet container failed to start. Port 8080 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
+----
+
+It could be even more improved by adding that it could be a random process or just another (IDE) instance of your application that needs to be shutdown manually.
+
+The main takeaway here is however, that it makes sense to not only log out an error message wherever you can, but also *hint at possible fixes/calls for action*, if you can. That will save time later on, when analysing  bugs and the corresponding log files.
+
+(If you want to see more examples of proactive help, you can also have a look at the https://wicket.apache.org/[Apache Wicket] framework, which comes with a 'suggested fix' for a fair amount of errors. Have a look at its source code for more details.)
+
+
+==== Migrating Legacy Applications
+
+To get from a normal situation to the setup discussed in this guide, i.e. unified logging practices, log libraries etc.) takes some time. Especially if you are talking multiple, existing legacy applications that you all
+want to migrate to a somewhat homogeneous logging strategy. Even disregarding all the issues of management buy-in etc, you'll need to do
+the migration slowly for all the apps over several releases.
+
+One approach could be to put everything into the same logfile to begin with and as code and logging configuration is revisited, it would have all its logging revised to meet the new criteria. Unfortunately, this is just a rough pointer, as a fully detailed migration guide is outside the scope of this guide.
+
+== Centralized Logging
+
+As soon as you have more than one instance of an application running, or even multiple instances of multiple applications (think bigger organization or microservices), the question of "how to manage those logs" gets interesting. A very simple solution could be that OPs has some sort of script, that copies
+all the log files from all your instances to some shared network folder, so that developers can access it.
+
+A more advanced solution are centralized logging servers or stacks, like https://www.graylog.org/[Graylog] or https://www.splunk.com/en_us/solutions/solution-areas/log-management.html[Splunk] or https://www.elastic.co/elk-stack[Elk].
+
+Let's have a look at Graylog. There are https://github.com/mp911de/logstash-gelf/[Graylog Extended Log Format - GELF] appenders for all major Java logging frameworks, which means you can configure e.g. Log4j2 to directly send its log events to Graylog. Graylog will consume
+the log event from as many instances and applications as needed and display them in a nice, little graphical UI - albeit the syntax for searching specific log events/date ranges takes some time to get used to.
+
+Here's a glance of what a Graylog dashboard looks like: (linked from the https://www.graylog.org[graylog homepage]). For further information on what Graylog looks like, consult its documentation.
+
+++++
+<img class="img-fluid img-thumbnail" src="https://global-uploads.webflow.com/5ac133a161e365de41ae40d3/5ac133a161e365e54cae414c_overview_selfservice-p-800.png"/>
+++++
+
+{nbsp}
+
+Takeaway: If you are big enough to need a centralized log server, do a quick comparison of all available options and then make sure of the following, independent of your final choice:
+
+That your developers and applications can not only write to your log server. But that ops and dev staff actually also knows how to properly handle the UI of the log server and issue proper search queries - especially
+if multiple instances of multiple applications are involved.
+
+
+== Deciding On The Right (™) Way To Log
+
+It has been quite a ride so far. We discussed a ton of different logging libraries and different ways how to log. Let's sum everything up and - as always - remember that there is no 'one and only right way'.
+
+* If you are developing a new project, start out with https://www.slf4j.org/manual.html[SLF4J] + https://logback.qos.ch/[Logback] or https://logging.apache.org/log4j/2.x/[Log4j2]. You will be fine either way.
+* If you are working on a legacy project, try to migrate everything to a log facade (SLF4J) and introduce a homogeneous and unified approach to logging across all of your teams
+* Practicing the right log levels, message contents, monitoring measures etc. will take time, so don't get frustrated. It's an iterative process.
+* If you are big enough (multiple applications, multiple instances), you might want to look into a centralized log server
+* Most of all, enjoy logging!
+
+That's it for today. If you have any questions or if you found some errors (spelling, logical, whatever) just post them to the comment section or e-mail me.
+
+*##Thanks for reading##*
+
+
+== Acknowledgements
+
+3amopsguy, who was a real mentor when it came to logging, back in 2012.
+
+

@@ -1,0 +1,729 @@
+= How To Work With Files In Java
+Marco Behler
+2020-12-09
+:page-layout: layout-guides
+:page-icon: design_app
+:sourcedir: /mnt/c/dev/database-access/src/com/company
+:linkattrs:
+:page-image: "/images/guides/undraw_attached_file_n4wm.png"
+:page-description: You can use this guide to learn how to work with files in Java through the Path API. From reading and writing files, to watching directories & using in-memory file systems.
+:page-published: true
+:page-tags: ["java file", "java files", "java paths", "java path api", "java nio"]
+:page-commento_id: /guides/java-files
+
+== Java's File APIs
+
+Java has two file APIs.
+
+* The original `_java.io.File_` API, available since Java 1.0 (1996).
+* The newer `_java.nio.file.Path_` API, available since Java 1.7 (2011).
+
+=== What is the difference between the File and Path APIs?
+
+The old file API is used in a ton of older projects, frameworks and libraries. Despite its age, it is not deprecated (and likely never will be) and you can still use it with any of the latest Java versions.
+
+Nevertheless, `_java.nio.file.Path_` does everything `_java.io.File_` can, but generally in a better way and more. A few examples:
+
+* File Features: The new classes support symlinks, proper file attributes and metadata support (think: PosixFileAttributes), ACLs and more.
+* Better usage: E.g. when deleting a file, you get an exception with a meaningful error message (no such file, file locked, etc.), instead of a simple boolean saying `_false_`.
+* Decoupling: Enabling support for in-memory file systems, which we'll cover later.
+
+(For a full list of differences between the two APIs, check out this article: https://www.oracle.com/technical-resources/articles/javase/nio.html)
+
+=== Which file API should I use?
+
+For the reasons mentioned above, if you are starting a new Java project, it is highly recommended to use the `_Paths_` API over the `_File_` API. (Even though _file_ reads so much nicer than _path_, doesn't it?)
+
+Hence, we will focus solely on the `_Paths_` API in this article.
+
+== Paths API
+
+To work with files in Java, you first need a reference to a file (big surprise!). As we just mentioned above, starting with Java 7, you would use the Paths API to reference files, so it all starts with constructing `_Path_` objects.
+
+Let's see some code.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/Locating.java[lines=10..34]
+----
+
+Let's break this down:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/Locating.java[lines=14..18]
+----
+
+Starting with Java 11, you should use the static `_Path.of_` method to construct paths (we'll cover the Java7-10 equivalent in a second).
+
+It does not matter if you are using forward slashes e.g. on Windows, as the Path API is smart enough to construct the right path, independently of the OS and any forward-backward slash issues.
+
+So, both lines above will return the following result, when running the main method.
+
+[source,console,role=tooth]
+----
+c:\dev\licenses\windows\readme.txt
+c:\dev\licenses\windows\readme.txt
+----
+
+There are more choices you have when constructing paths: You don't have to specify the complete path as one long string:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/Locating.java[lines=20..24]
+----
+
+Instead, you can pass a sequence of strings to the `_Path.of_` method, or construct the parent directory and use it to get a child file (`_.resolve(child)_`).
+
+Again, the output will be the same as before.
+
+[source,console,role=tooth]
+----
+c:\dev\licenses\windows\readme.txt
+c:\dev\licenses\windows\readme.txt
+----
+
+Last but not least, you can also pass URIs into the `_Path.of_` call.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/Locating.java[lines=26..27]
+----
+
+It sounds like a broken record, but the output....will be the same.
+
+[source,console,role=tooth]
+----
+c:\dev\licenses\windows\readme.txt
+----
+
+So, you have a variety of choices constructing your Path objects.
+
+Two important points, however:
+
+1. Constructing a path object or resolving a child, *does not* mean the file or directory actually exists. The path is merely a reference to a _potential_ file. So, you'll have to separately verify its existence.
+2. Pre Java-11, `_Path.of_` was called `_Paths.get_`, which you'll need to use if you're stuck on older Java versions or building a library that needs some backward compatibility. Starting with Java 11, `_Paths.get_` internally redirects to `_Path.of_`.
++
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/Locating.java[lines=29..31]
+----
+
+Once you have a path object, you can finally _do_ something with it. Let's see what and how in the next section.
+
+
+== Common File Operations
+
+When working with files or paths, you will likely be using the `_java.nio.file.Files_` class. It contains a ton of common & useful static methods, that operate on files and directories.
+
+Use this section as a quick cheat sheet, the headings are self-explanatory.
+
+=== How to check if a file exists
+
+// exists
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=15;17..18]
+----
+
+Checks if a file or directory exists. Also lets you specify additional parameters, to define how symlinks are handled, i.e. followed (default) or not.
+
+When running this snippet, you'll get a simple boolean flag back.
+
+[source,console,role=tooth]
+----
+exists = true
+----
+
+=== How to get the last modified date of a file
+
+// lastmodified
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=15;20..21]
+----
+
+Self-explanatory. Returns the last date your file was modified as a `_FileTime_` object.
+
+[source,console,role=tooth]
+----
+lastModifiedTime = 2020-05-20T08:41:30.905176Z
+----
+
+
+=== How to compare files (Java12+)
+
+// comparing files  ./.java 12+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=15;23..24]
+----
+
+This is a relatively new addition to Java, available since Java 12. It compares the sizes and bytes of two files and returns the position of the first (byte) mismatch. Or, -1L if there was no mismatch.
+
+Hence, if you are comparing two completely different files, you'll get this as console output: the very first byte already didn't match, hence the mismatch is _position zero_.
+
+[source,console,role=tooth]
+----
+mismatch = 0
+----
+
+
+=== How to get the owner of a file
+// get owner
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=15;26..27]
+----
+
+Self explanatory. Returns the owner of a file or directory as `_UserPrincipal_` (which extends from `_Principal_`). On Windows, this will be a WindowsUserPrincipal, which contains the user's account name (shown below), as well as his `_sid_`, his unique security identifier on your Windows machine.
+
+[source,console,role=tooth]
+----
+owner = DESKTOP-168M0IF\marco_local (User)
+----
+
+=== How to create temp files
+
+// tmp files
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=29..33;48..50]
+----
+
+Let's break this down.
+// tmp files
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=29..30]
+----
+
+When creating temp files, you can specify a prefix (first param) and a suffix (second param). Both can be null.
+
+The prefix will be prefixed (duh!) to the temp file name, the suffix is essentially the file extension, and if you leave it out a default extension of ".tmp" will be used.
+
+The file will be created in the https://stackoverflow.com/questions/1924136/environment-variable-to-control-java-io-tmpdir[default temporary-file directory].
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=32..33]
+----
+
+Instead of the default temp directory, you can also specify your own directory where you want the temp file to be created.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=49..50]
+----
+
+In addition to files, you can also create temp directories. As you don't need the suffix parameter when creating dirs, you only have to choice of specifying a prefix parameter.
+
+
+When running the code snippet from above, you'll get the following (or similar) output:
+
+[source,console,role=tooth]
+----
+tempFile1 = C:\Users\marco\AppData\Local\Temp\somePrefixOrNull8747488053128491901.jpg
+tempFile2 = c:\dev\licenses\windows\somePrefixOrNull11086918945318459411.jpg
+tmpDirectory = C:\Users\marco\AppData\Local\Temp\prefix9583768274092262832
+----
+
+*Note*: Temp files, contrary to popular belief, *do not* delete themselves. You have to make sure to explicitly delete them, when creating them in unit tests or when running in production.
+
+
+=== How to create files and directories
+
+You've seen how to create temp files, and it's the very same thing with normal files and directories. You'll just call different methods:
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=35..39]
+----
+
+Some people are confused by this: The `_.resolve_` call does not create the file, it merely returns a _reference_ to the (child) file you are about to create.
+
+When running the code snippet from above, you'll get the following (or similar) output:
+
+[source,console,role=tooth]
+----
+newDirectory = c:\dev\licenses\windows\some\new\dir
+newFile = c:\dev\licenses\windows\some\new\dir\emptyFile.txt
+----
+
+=== How to get the Posix permissions of a file
+
+If you are running your Java program on a Unix-like system (including Linux and MacOS), you can get a file's Posix permissions. Think: "-rw-rw-rw-" or "-rwxrwxrwx" etc.
+
+// posix
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/FilesMethods.java[lines=15;41..46]
+----
+
+Running this on Linux or MacOS, you would get this kind of output:
+
+[source,console,role=tooth]
+----
+OWNER_WRITE
+OWNER_READ
+GROUP_WRITE
+OTHERS_READ
+...
+----
+
+
+== Writing & Reading Files
+
+=== How to write strings to files
+
+We haven't talked about the core of file-handling just yet: Writing to and reading from files.
+
+Let's see how you can do that:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/WritingFiles.java[lines=13..19]
+----
+
+Starting with Java 11 (more specifically 11.0.2/12.0, as there was https://bugs.openjdk.java.net/browse/JDK-8209576[a bug] in previous versions), you should be using the `_Files.writeString_` method to write string content to a file. By default, it will write a UTF-8 file, which you can, however, override by specifying a different encoding.
+
+=== How to write bytes to files
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/WritingFiles.java[lines=21..23]
+----
+
+If you want to write bytes to a file (and in older Java versions < 11 you'd have to use the same API for writing strings), you need to call `_Files.write_`.
+
+
+=== Options when writing files
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/WritingFiles.java[lines=25..33]
+----
+
+When calling either of the `_write_` methods, the file will _automatically_ be created (and truncated if it already exists). Which means, we wouldn't have had to create explicit temporary files, like we did above.
+
+If you don't want that behavior (i.e. fail if the file already exists) and get a corresponding exception, you'll need to pass in https://docs.oracle.com/javase/7/docs/api/java/nio/file/StandardOpenOption.html[another OpenOption].
+
+
+=== Using Writers and OutputStreams
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/WritingFiles.java[lines=36..42]
+----
+
+Last but not least, if you want to work directly with writers or output streams, make sure to call the corresponding `_Files_` methods and not construct the writers or streams by hand.
+
+
+=== How to read strings from files
+
+Reading files is very similar to writing:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/ReadingFiles.java[lines=17..21]
+----
+
+On Java11+, you should be using the `_Files.readString_` method to read a string from a file. Make sure to pass in the appropriate file encoding; by default, Java will use the UTF-8 encoding to read in files.
+
+
+=== How to read bytes from files
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/ReadingFiles.java[lines=23..24]
+----
+
+If you want to read bytes from a file (and in older Java versions < 11 you'd have to use the same API for reading strings), you need to call `_Files.readAllBytes_`.
+
+In case the final result should be a string, you'd then have to construct it yourself, with the appropriate encoding.
+
+=== Using Readers and InputStreams
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/ReadingFiles.java[lines=27..33]
+----
+
+As always, you can fall back to using readers or inputstreams directly. For that, use the corresponding `_Files_` methods.
+
+=== A friendly reminder: File Encodings
+
+I've mentioned it a couple of times over the previous sections:
+
+You _absolutely should use an explicit encoding_, whenever creating, writing to or reading from files, though it's of big help that the new Java 11 methods default to UTF-8, and not the platform-specific encoding.
+
+
+== Moving, Deleting & Listing Files
+
+There are a couple of things you need to watch out for, when moving or deleting files. Let's see some code:
+
+=== How to move files
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/DeleteMoveFiles.java[lines=12..18]
+----
+
+There is a `_Files.move_` method, but it _does not_ move a file to a designated directory (which you might expect).
+
+* test.jpg -> c:\temp does not work.
+* test.jpg -> c:\temp\test.jpg works.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/DeleteMoveFiles.java[lines=20..20]
+----
+
+So, you don't move files to folders, but you "move" them to their full new path, including the filename and extension.
+
+=== File Move Options
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/DeleteMoveFiles.java[lines=23..27]
+----
+
+When moving files, you can also specify how you want to move to happen, depending on the capabilities of the underlying file system.
+
+* By default, if the target file already exists, a `_FileAlreadyExistsException_` will be thrown.
+* If you specify the `_StandardCopyOption.REPLACE_EXISTING_` option, the target file will be overwritten.
+* If you specify the `_StandardCopyOption.ATOMIC_MOVE_` option, you can move a file into a directory and be guaranteed that any process watching the directory accesses a complete file and not just a partial file.
+
+=== How to delete files
+
+Deleting files and folders is an area, where the Java Path API falls short a tiny bit. Let's see why:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/DeleteMoveFiles.java[lines=33..37]
+----
+
+There is the `_Files.delete_` method, which allows you to delete files and directories, but directories only if they are empty.
+
+There is unfortunately no flag to purge a non-empty directory, and you'll simply get a `_DirectoryNotEmptyException_`.
+
+=== How to delete non-empty directories
+
+There are some 3rd-party helper libraries to work around this, but if you want to use a plain Java version to delete a non-empty directory tree, this is what you'll want to do:
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/DeleteMoveFiles.java[lines=39..48]
+----
+
+`_Files.walk_` will walk a file tree depth-first, starting with the directory you specify. The `_reverseOrder_` comparator will make sure that you delete all children, before deleting the actual directory.
+
+Unfortunately, you'll also need to catch the IOException, when using `_Files.delete_` inside the `_forEach_` consumer. A whole lot of code for deleting a non-empty directory, isn't it?
+
+Which brings us to the topic of listing files:
+
+=== How to list files in the same directory
+
+There are various ways how you can list all files in a given directory. If you only want to list files on the same levels as the directory (not recursively deeper), you can use these two methods:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/ListingFiles.java[lines=13..19]
+----
+
+Note, that `_newDirectoryStream_` (as opposed to `_Files.list_`) does not return a `_java.util.stream.Stream_`. Instead, it returns a `_DirectoryStream_`, which is a class that got introduced in Java 1.7, before the release of the Streams API in Java 8.
+
+It does, however, allow you to specify a `_glob_` pattern (like *.txt), which does the job for simple listings, and is maybe a bit easier to read than fumbling with real Streams and the corresponding _filter_ methods.
+
+Also note, that the streams returned by both methods must also be closed (e.g. with a try-with-resources statement), otherwise the JVM will keep the file handle on the directory open, which (on Windows) effectively locks it.
+
+=== How to list files recursively
+
+If you want to recursively list all files of a file tree, you'll need to employ the method we used for deleting directories: `_Files.walk_`.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/ListingFiles.java[lines=21..23]
+----
+
+Note, that the stream returned by `_Files.walk_` must also be closed (e.g. with a try-with-resources statement), otherwise the JVM will keep the file handle on the directory open, which (on Windows) effectively locks it.
+
+== Absolute, Relative & Canonical Files
+
+Let's quickly talk about the concepts of absolute, relative & canonical paths. It's best demonstrated with some code examples:
+
+=== Relative Paths
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/AbsoluteRelativeFiles.java[lines=9..10]
+----
+
+Here, you're constructing a new path, based on the current directory (.), even including a (..) at some point. Hence, the path is `_relative_` to your current directory, and `_path.isAbsolute_` will return false.
+
+[source,console,role=tooth]
+----
+p.isAbsolute() = false
+----
+
+=== Absolute Paths
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/AbsoluteRelativeFiles.java[lines=12..14]
+----
+
+When you call `_toAbsolutePath_` on the path, it will get converted to an..well...absolute path, in my case containing `_C:\dev\java-files_`. Note, the absolute path _still_ contains the dots, for current directory and upper-directory!
+
+[source,console,role=tooth]
+----
+p2 = C:\dev\java-file-article\.\src\main\java\..\resources\some.properties
+p2.isAbsolute() = true
+----
+
+=== Normalized Paths
+
+How to get rid of the dots? You'll need to call `_normalize_`.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/AbsoluteRelativeFiles.java[lines=16..18]
+----
+
+This normalized, absolute path, is also what you could have called the _canonical path_.
+
+=== Relativizing Paths
+
+[source,console,role=tooth]
+----
+p3 = C:\dev\java-file-article\src\main\resources\some.properties
+p3.isAbsolute() = true
+----
+
+Last but not least, you can also go the other way. Instead of making relative paths absolute, you can make absolute paths relative.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/AbsoluteRelativeFiles.java[lines=20..21]
+----
+
+You're essentially saying, given a certain base path, what is the relative path of my current (absolute) path. You'll get the following output:
+
+[source,console,role=tooth]
+----
+relativizedPath = src\main\resources\some.properties
+----
+
+
+== Watching Files & Directories
+
+Some projects need to watch directories for newly created (think: uploaded) files and do something with them. You have two popular choices, when it comes to _watching_ for changes in a directory, in Java.
+
+=== Java's WatchService
+
+With Java 7, Java its https://docs.oracle.com/javase/7/docs/api/java/nio/file/WatchService.html[WatchService]. It is a somewhat low-level way of watching for changes in a specified directory.
+
+The WatchService will get notified of _native file events_ (Windows, Linux), with the notable exception being MacOS, where it falls back to polling directories for changes - which is pretty much what all other watch-libraries do by default (see next section).
+
+Here's some code, which you *should not blindly copy & paste*, but which will give you an idea of what a WatchService looks like.
+
+[source,java,role=tooth]
+----
+public static void main(String[] args) throws IOException {
+
+    WatchService watcher = FileSystems.getDefault().newWatchService();
+
+    Path dir = Path.of("c:\\someDir\\");
+
+    dir.register(watcher,
+            ENTRY_CREATE,
+            ENTRY_DELETE,
+            ENTRY_MODIFY);
+
+    for (;;) {
+
+        WatchKey key;
+        try {
+            key = watcher.take();
+        } catch (InterruptedException x) {
+            return;
+        }
+
+        for (WatchEvent<?> event: key.pollEvents()) {
+            WatchEvent.Kind<?> kind = event.kind();
+
+            if (kind == OVERFLOW) {
+                continue;
+            }
+
+            WatchEvent<Path> ev = (WatchEvent<Path>)event;
+            Path filename = ev.context();
+
+            Path changedFile = dir.resolve(filename);
+
+            // do something with the file
+        }
+
+        boolean valid = key.reset();
+        if (!valid) {
+            break;
+        }
+    }
+}
+----
+
+Discussing a https://docs.oracle.com/javase/tutorial/essential/io/notification.html[full WatchService implementation] here does not really fit into the scope of this article, but note:
+
+There's a couple of things to watch out for (no pun intended) when using WatchService:
+
+* You might assume that you get _one_ event, whenever e.g. a file is updated, but this can easily result in two events: One for the updated content and one for updating the last-modified timestamp, happening within a short period of time.
+* Complex IDEs like IntelliJ or even smaller text editors like Notepad++ don't just save a file and its contents in one go. They copy contents to tmp files, delete them, then save the content to your actual file, etc.  Again, there can be multiple updates happening to the same or even multiple files, whereas you, as the end-user, ideally would like to have just _one_ updated event.
+* Hence, you'll need to apply https://stackoverflow.com/questions/16777869/java-7-watchservice-ignoring-multiple-occurrences-of-the-same-event[some workarounds]. The unaccepted answer with 40+ upvotes (`_Thread.sleep_`) has worked somewhat reliably for me, in the past).
+
+Last, but not least, you might want to have a look at this https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/[superb article], which talks about Java's WatchService, Containers and issues with bind mounts.
+
+=== Apache Commons-IO
+
+There's another library that lets you watch directories for incoming changes: https://commons.apache.org/proper/commons-io/[Commons IO]. It has the easier API from a usage perspective, but differs in two aspects from WatchService:
+
+1. It only works with `_java.io.Files_`, not `_java.nio.file.Paths_`.
+2. It uses polling, i.e. it calls the listFiles() method of the File class and compares the output with the listFiles() output of the previous iteration to see what changed.
+
+Again, a full implementation is outside the scope of this article, but you might want to have a look at this https://gist.github.com/marcomachado/6581811[Gist] for a working code example or use the https://commons.apache.org/proper/commons-io/javadocs/api-release/index.html?org/apache/commons/io/monitor/package-summary.html[JavaDoc] on `_FileAlterationMonitor_` or `_FileAlterationObserver_` as a starting point.
+
+Here's what the code roughly looks like, which *you should not blindly copy & paste*:
+
+[source,java,role=tooth]
+----
+public static void main(String[] args) throws IOException {
+    FileAlterationObserver observer = new FileAlterationObserver(folder);
+    FileAlterationMonitor monitor =
+            new FileAlterationMonitor(pollingInterval);
+    FileAlterationListener listener = new FileAlterationListenerAdaptor() {
+        // Is triggered when a file is created in the monitored folder
+        @Override
+        public void onFileCreate(File file) {
+            // do something
+        }
+
+        // Is triggered when a file is deleted from the monitored folder
+        @Override
+        public void onFileDelete(File file) {
+           // do something
+        }
+    };
+}
+----
+
+
+
+== In-Memory File Systems
+
+Some developers assume that working with files always means you'll actually have to write them to your disk.
+
+During testing, this leads to creating a lot of temp files and directories and then having to make sure to delete them again.
+
+But, with Java's `_Path_`-API, there's a much better way: In-Memory File Systems.
+
+They let you write and read files, completely in-memory, without ever hitting your disk. Super-fast and a great fit for testing (as long as you don't run out of memory, erm... ).
+
+There are two Java in-memory file systems that are worth looking at.
+
+=== Memory File System
+
+One choice is https://github.com/marschall/memoryfilesystem[Memory File System]. Let's see how you would create an in-memory filesystem with it.
+
+[source,java,indent=0]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/MemoryFileSystem.java[]
+----
+
+Let's break it down.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/MemoryFileSystem.java[lines=14]
+----
+
+The only Memory File System-specific line is this one. You need to create a `_FileSystem_` that you will use later on to create and read/write your `_Paths_`.
+
+By calling `_newLinux()_` or `_newWindows()_` or `_newMacOs()_` you can control the semantics of the created file system.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/MemoryFileSystem.java[lines=16..19]
+----
+
+You are writing to a file called `_somefile.txt_` and reading in the file contents a couple of lines later.
+
+This is the plain `_java.nio.file.Path-API_`, with one huge difference. You need to get your Path from the `_fileSystem_`, _not_ via `_Path.of_` or `_Paths.get_`.
+
+You'll see why that is the case, after looking at JimFS.
+
+=== JimFS
+
+Another choice is https://github.com/google/jimfs[JimFS].  Let's see how you would create an in-memory filesystem with it.
+
+[source,java,indent=0]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/JimFSSystem.java[]
+----
+
+Let's break it down.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/JimFSSystem.java[lines=15]
+----
+
+The only Memory File System-specific line is this one. You need to create a `_FileSystem_` that you will use later on to create and read/write your `_Paths_`.
+
+With the `_Configuration.unix/windows/macOs_` parameter, you can control the semantics of the created file system.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/java-file-article/master/src/main/java/com/marcobehler/files/JimFSSystem.java[lines=16..20]
+----
+
+You are writing to a file called `_somefile.txt_` and reading in the file contents a couple lines later.
+
+This is the plain `_java.nio.file.Path-API_`, with one huge difference. You need to get your Path from the `_fileSystem_`, _not_ via `_Path.of_` or `_Paths.get_`.
+
+Let's see why that is, now.
+
+=== How to make your application work with in-memory filesystems: anchors
+
+When you look at the implementation of `_Path.of_` or `_Paths.get_`, you will see this:
+
+[source,java]
+----
+public static Path of(String first, String... more) {
+    return FileSystems.getDefault().getPath(first, more);
+}
+----
+
+So, while this method (and others) are very convenient, using them will imply you want to access your `_default_` FileSystem, the one your JVM is running on (WindowsFileSystem, UnixFileSystem etc.), _not_ your `_in-memory_` FileSystem.
+
+Hence, when wanting to make sure your code works against in-memory file systems, you must make sure to _never_ call these helpers methods. Instead, you should always use the `_FileSystem_` or a `_Path_` as an anchor, like you are doing in the examples above.
+
+Depending on your project (think: legacy), this is quite a challenge to pull off.
+
+== Fin
+
+By now you should have a pretty good overview of how to work with files in Java.
+
+* How to do all basic file operations, from reading, writing, listing, moving & deleting.
+* How relative, absolute & canonical paths work.
+* How to watch directories and files.
+* How you can use in-memory file systems for testing.
+
+Feedback, corrections and random input are always welcome! Simply leave a comment down below.
+
+Thanks for reading.
+
+
+== Acknowledgements
+
+Many thanks to https://www.reddit.com/user/__konrad/[konrad], https://www.reddit.com/user/jonhanson/[jonhanson] and https://www.reddit.com/user/DasBrain/[DasBrain] on Reddit for pointing out various small issues (needed auto-closing of file listing streams, bugs with Files.writeString, usage of the var-keyword for better readability).

@@ -1,0 +1,776 @@
+= Java Versions and Features
+Marco Behler
+2021-09-17
+:revdate: 2023-05-04
+:page-layout: layout-guides
+:page-icon: files_paper
+:sourcedir: /mnt/c/dev/TODO
+:linkattrs:
+:page-image: "/images/guides/undraw_version_control_9bpv.png"
+:page-description: You can use this guide to get practical information on how to find and install the latest Java, understand the differences between Java distributions (Adoptium, AdoptOpenJdk, Temurin, OpenJDK, OracleJDK etc.), as well as get an overview of Java language features, including version Java versions 8-19.
+:page-published: true
+:page-tags: ["java", "openjdk", "jdk"]
+
+== Practical Information
+
+First, let's have a look at some common, practical questions that people have when trying to choose the right Java version for their project.
+
+=== TL;DR I only want a download link and know about everything else. Where should I go?
+
+Go to the https://adoptium.net[Adoptium] site, choose the very latest release version, download and install it. Then come back to this guide to maybe still learn a thing or two about Java versions.
+
+=== What is the latest Java version?
+
+As of March 2023, https://openjdk.java.net/projects/jdk/20/[Java 20] is the latest released Java version. In September 2023, https://openjdk.java.net/projects/jdk/21/[Java 21] will follow. The current long-term support version (LTS) of Java is Java 17, released in September 2021.
+
+=== What Java version should I use?
+
+Newer Java versions now follow every 6 months. Hence, Java 21 is scheduled for September 2023, Java 22 for March 2024 and so on. In the past, Java release cycles were _much longer_, up to 3-5 years. This graphic demonstrates that:
+
+[ditaa,java-versions-release-cycles-7,png]
+
+----
+|
+|  09/04    09/06         07/11     03/14     09/17  03/18  09/18  03/19  09/19  03/20  09/20  03/21  09/21  03/22  09/22   03/23
+|----|--------|-------------|---------|---------|------|------|------|------|------|------|------|------|------|------|------|--------->
+|   5.0       6             7         8         9      10     11     12     13     14     15     16     17     18     19    20
+|
+----
+
+With that many new versions coming out, there's basically these real-world(™) usage scenarios:
+
+* Legacy projects in companies are often stuck with using Java 8 (see <<Why are companies still stuck with Java 8?>>) . Hence you will be forced to use Java 8 as well.
+* Some legacy projects are even stuck on Java 1.5 (released 2004) or 1.6 (released 2006) - sorry, folks, I feel for you!
+* If you are making sure to use the very latest IDEs, frameworks and build tools and starting a greenfield project, you can, without hesitation, use Java 17 (LTS) or even the very latest Java 19.
+* There's the special field of Android development, where the Java version is basically stuck at Java 7, with a https://developer.android.com/studio/write/java8-support[specific set of Java 8 features] available. Or you switch to using the Kotlin programming language.
+
+=== Why are companies still stuck with Java 8?
+
+There's a mix of different reasons some companies are still stuck with Java 8. To name a few:
+
+* Build tools (Maven, Gradle etc.) and some libraries _initially_ had bugs with versions Java versions > 8 and needed updates. For example, certain build tools like Maven would print out https://issues.apache.org/jira/browse/GROOVY-8339["reflective access"-warnings] when building Java projects, which simply "felt not ready", even though the builds were fine.
+* Up until Java 8 you were pretty much using Oracle's JDK builds and you did not have to care about licensing. Oracle changed the https://www.oracle.com/technetwork/java/javase/overview/oracle-jdk-faqs.html[licensing scheme In 2019], though, which led the internet go crazy with a ton of articles saying "Java is not free anymore" - and a fair amount of confusion followed. This is however not really an issue, which you'll learn about in the <<Java Distributions>> section of this guide.
+* Some companies have policies to only use LTS versions and rely on their OS vendors to provide them these builds, which takes time.
+
+To sum up: you have a mix of practical issues (upgrading your tools, libraries, frameworks) and political issues.
+
+=== Why are some Java versions, like 8 also called 1.8?
+
+Java versions before 9 simply had a different naming scheme. So, Java 8 can also be called _1.8_, Java 5 can be called _1.5_ etc. When you issued the 'java -version' command, with these versions you got output like this:
+
+[source,console]
+----
+c:\Program Files\Java\jdk1.8.0_191\bin>java -version
+java version "1.8.0_191" <1>
+Java(TM) SE Runtime Environment (build 1.8.0_191-b12)
+Java HotSpot(TM) 64-Bit Server VM (build 25.191-b12, mixed mode)
+----
+
+Which simply means Java 8. With the switch to time-based releases with Java 9 the naming scheme also changed, and Java versions aren't prefixed with 1.x anymore. Now the version number looks like this:
+
+[source,console]
+----
+c:\Program Files\Java\jdk11\bin>java -version
+openjdk version "11" 2018-09-25 <1>
+OpenJDK Runtime Environment 18.9 (build 11+28)
+OpenJDK 64-Bit Server VM 18.9 (build 11+28, mixed mode)
+----
+
+
+=== What is the difference between the Java versions? Should I learn a specific one?
+
+Coming from other programming languages with major breakages between releases, like say Python 2 to 3, you might be wondering if the same applies to Java.
+
+Java is special in this regard, as it is _extremely_ backwards compatible. This means that your Java 5 or 8 program is guaranteed to run with a Java 8-20 virtual machine -  with a few exceptions you don't need to worry about for now.
+
+It obviously does not work the other way around, say your program relies on Java 20 features, that are simply not available under a Java 8 JVM.
+
+This means a couple of things:
+
+* You do not just "learn" a specific Java version, like 12.
+* Rather, you'll get a good foundation in all language features up until Java 8. This serves as a good base.
+* And then learn, from a guide like this, what _additional features_ came in Java 9-20 and use them whenever you can.
+
+
+=== What are examples of these new features between Java versions?
+
+Have a look at the <<Java Features 8-20>> section.
+
+But as a rule of thumb: The older, longer release-cycles (3-5 years, up until Java 8) meant a lot of new features per release.
+
+The 6-month release cycle means a lot less features, per release, so you can catch up quickly on Java 9-20 language features.
+
+
+=== What is the difference between a JRE and a JDK?
+
+Up until now, we have only been talking about "Java". But what is Java exactly?
+
+First, you need to differentiate between a _JRE_ (Java Runtime Environment) and a _JDK_ (Java Development Kit).
+
+Historically, you downloaded just a _JRE_ if you were only interested in running Java programs. A JRE includes, among other things, the Java Virtual Machine (JVM) and the "java" command line tool.
+
+To develop new Java programs, you needed to download a _JDK_. A JDK includes _everything_ the JRE has, as well as the compiler _javac_ and a couple of other tools like _javadoc_ (Java documentation generator) and _jdb_ (Java Debugger).
+
+Now why am I talking in past tense?
+
+Up until Java 8, the Oracle website offered JREs and JDKs as separate downloads - even though the JDK also always included a JRE in a separate folder. With Java 9 that distinction was basically gone, and you are _always_ downloading a JDK. The directory structure of JDKs also changed, with not having an explicit JRE folder anymore.
+
+So, even though some distributions (see <<Java Distributions>> section) still offer a separate JRE download, there seems to be the trend of offering just a JDK. Hence, we are going to use _Java_ and _JDK_ interchangeably from now on.
+
+=== How do I install Java or a JDK then?
+
+Ignore the Java-Docker images, .msi wrappers or platform-specific packages for the moment. In the end, Java is just a .zip file, nothing more, nothing less.
+
+Therefore, all you need to do to install Java onto your machine, is to unzip your jdk-{5-20}.zip file. You don't even need administrator rights for that.
+
+Your unzipped Java file will look like this:
+
+[source,console]
+----
+Directory C:\dev\jdk-11
+
+12.11.2019  19:24    <DIR>          .
+12.11.2019  19:24    <DIR>          ..
+12.11.2019  19:23    <DIR>          bin
+12.11.2019  19:23    <DIR>          conf
+12.11.2019  19:24    <DIR>          include
+12.11.2019  19:24    <DIR>          jmods
+22.08.2018  19:18    <DIR>          legal
+12.11.2019  19:24    <DIR>          lib
+12.11.2019  19:23             1.238 release
+----
+
+The magic happens in the /bin directory, which under Windows looks like this:
+
+[source,console]
+----
+Directory C:\dev\jdk-11\bin
+...
+12.11.2019  19:23           272.736 java.exe
+...
+12.11.2019  19:23            20.832 javac.exe
+...
+----
+
+So all you need to do is unzip that file and put the /bin directory in your PATH variable, so you can call the 'java' command from anywhere.
+
+(In case you are wondering, GUI installers like the one from Oracle or Adoptium will do the unzipping and modifying the PATH variable for you, that's about it.)
+
+To verify you installed Java correctly, you can then simply run 'java -version'. If the output looks like the one below, you are good to go.
+
+[source,console]
+----
+openjdk version "11" 2018-09-25
+OpenJDK Runtime Environment 18.9 (build 11+28)
+OpenJDK 64-Bit Server VM 18.9 (build 11+28, mixed mode)
+----
+
+Now there's one question left: Where do you get that Java .zip file from? Which brings us to the topic of distributions.
+
+== Java Distributions
+
+There's a variety of sites offering Java (read: JDK) downloads and it is unclear "who offers what and with which licensing". This section will shed some light on this.
+
+=== The OpenJDK project
+
+In terms of Java source code (read: the source code for your JRE/JDK), there is _only one_, living at the http://openjdk.java.net/projects/jdk/[OpenJDK project] site.
+
+This is just source code however, not a distributable build (think: your .zip file with the compiled java command for your specific operating system). In theory, you and I could produce a build from that source code, call it, say, _MarcoJDK_ and start distributing it. But our distribution would lack certification, to be able to legally call ourselves _Java SE compatible_.
+
+That's why in practice, there's a handful of vendors that actually create these builds, get them certified (see https://en.wikipedia.org/wiki/Technology_Compatibility_Kit[TCK]) and then distribute them.
+
+And while vendors cannot, say, remove a method from the String class before producing a new Java build, they can add branding (yay!) or add some other (e.g. CLI) utilities they deem useful. But other than that, the original source code is _the same_ for _all_ Java distributions.
+
+=== OpenJDK builds (by Oracle) and OracleJDK builds
+
+One of the vendors who builds Java from source is Oracle. This leads to _two different Java distributions_, which can be very confusing at first.
+
+1. http://jdk.java.net[OpenJDK builds] by Oracle(!). These builds are free and unbranded, but Oracle won't release updates for older versions, say Java 15, as soon as Java 16 comes out.
+
+2. https://www.oracle.com/technetwork/java/javase/downloads/index.html[OracleJDK], which is a branded, commercial build starting with the license change in 2019. [line-through]#Which means it can be used for free during development, but you need to pay Oracle if using it in production. For this, you get longer support, i.e. updates to versions and a telephone number you can call if your JVM goes crazy.# In September 2021, starting with Oracle Java 17, Oracle introduced the https://www.oracle.com/downloads/licenses/no-fee-license.html[No-Fee Terms and Conditions License], making OracleJDK free again, with a couple of limitations you can read about by spending hours on the Oracle website.
+
+Now, historically (pre-Java 8) there were actual source differences between OpenJDK builds and OracleJDK builds, where you could say that OracleJDK was 'better'. But as of today, both versions are essentially the same, with https://blogs.oracle.com/java-platform-group/oracle-jdk-releases-for-java-11-and-later[minor differences].
+
+It then boils down to you wanting paid, commercial support (a telephone number) for your installed Java version.
+
+=== Adoptium's Eclipse Temurin (formerly AdoptOpenJDK)
+
+In 2017, a group of Java User Group members, developers and vendors (Amazon, Microsoft, Pivotal, Redhat and others) started a community, called https://adoptopenjdk.net/[AdoptOpenJDK]. As of August 2021, the AdoptOpenJDK project moved to a new home and is now called the https://projects.eclipse.org/projects/adoptium[Eclipse Adoptium] project. https://adoptium.net/en-GB/members/[Here] is the current list of Adoptium Working Group Members.
+
+Adoptium provides free, rock-solid OpenJDK builds, called `_Eclipse Temurin_`, with https://adoptium.net/support.html[longer availibility/updates], across a variety of operating systems, architectures and versions.
+
+*Highly recommended* if you are looking to install Java.
+
+=== Azul Zulu, Amazon Corretto, SAPMachine
+
+You will find a complete list of OpenJDK builds at the https://en.wikipedia.org/wiki/OpenJDK[OpenJDK Wikipedia] site. Among them are https://www.azul.com/products/zulu-community/[Azul Zulu], https://aws.amazon.com/de/corretto/[Amazon Corretto] as well as https://sap.github.io/SapMachine/[SapMachine], to name a few. To oversimplify it boils down to you having different support options/maintenance guarantees.
+
+Still, if you're, for example, working on AWS, it makes sense to just go with their Amazon Corretto OpenJDK builds, provided they offer the Java version you want to use.
+
+=== A Complete OpenJDK Distribution Overview
+
+https://twitter.com/rafaelcodes[Rafael Winterhalter] compiled a great list of all available OpenJDK builds, including their OS, architecture, licensing, support and maintenance windows.
+
+Check it out here: https://rafael.codes/openjdk/.
+
+=== Recommendation
+
+To re-iterate from the beginning, in 2023 and beyond, unless you have very specific requirements, go get your jdk.zip (.tar.gz/.msi/.pkg) file from https://adoptium.net (called `_Eclipse Temurin_`) or choose a package provided by your OS-vendor / cloud-provider.
+
+== Java Features 8-20
+
+As mentioned at the very beginning of this guide: Essentially _all_ (don't be picky now) Java 8 language features also work in Java 20. The same goes for all other Java versions in between.
+
+Which in turns means that all language features from Java 8 serve as very good Java base knowledge and everything else (Java 9-20) is pretty much additional features _on top_ of that baseline.
+
+Here's a quick overview of what the specific versions have to offer:
+
+=== - Java 8 -
+
+Java 8 was a massive release and you can find a list of all features at https://www.oracle.com/technetwork/java/javase/8-whats-new-2157071.html[the Oracle website]. There's two main feature sets I'd like to mention here, though:
+
+==== Language Features: Lambdas etc.
+
+Before Java 8, whenever you wanted to instantiate, for example, a new Runnable, you had to write an anonymous inner class like so:
+
+[source,java]
+----
+ Runnable runnable = new Runnable(){
+       @Override
+       public void run(){
+         System.out.println("Hello world !");
+       }
+     };
+----
+
+With lambdas, the same code looks like this:
+
+[source,java]
+----
+Runnable runnable = () -> System.out.println("Hello world two!");
+----
+
+You also got method references, repeating annotations, default methods for interfaces and a few other language features.
+
+==== Collections & Streams
+
+In Java 8 you also got functional-style operations for collections, also known as the Stream API. A quick example:
+
+[source,java]
+----
+List<String> list = Arrays.asList("franz", "ferdinand", "fiel", "vom", "pferd");
+----
+
+Now pre-Java 8 you basically had to write for-loops to do something with that list.
+
+With the Streams API, you can do the following:
+
+[source,java]
+----
+list.stream()
+    .filter(name -> name.startsWith("f"))
+    .map(String::toUpperCase)
+    .sorted()
+    .forEach(System.out::println);
+----
+
+==== If you want more Java 8 practice
+
+Obviously, I can only give a quick overview of each newly added Stream, Lambda or Optional method in Java 8 in the scope of this guide.
+
+If you want a more detailed, thorough overview - including exercises - you can have a look at my https://www.marcobehler.com/courses/32-core-java-features-version-8-12?utm_campaign=java_features_guide&utm_medium=java_features_guide&utm_source=java_features_guide[Java 8 core features] course.
+
+=== - Java 9 -
+
+Java 9 also was a fairly big release, with a couple of additions:
+
+==== Collections
+
+Collections got a couple of new helper methods, to easily construct Lists, Sets and Maps.
+
+[source,java]
+----
+List<String> list = List.of("one", "two", "three");
+Set<String> set = Set.of("one", "two", "three");
+Map<String, String> map = Map.of("foo", "one", "bar", "two");
+----
+
+==== Streams
+
+Streams got a couple of additions, in the form of takeWhile,dropWhile,iterate methods.
+
+[source,java]
+----
+Stream<String> stream = Stream.iterate("", s -> s + "s")
+  .takeWhile(s -> s.length() < 10);
+----
+
+==== Optionals
+
+Optionals got the sorely missed ifPresentOrElse method.
+
+[source,java]
+----
+user.ifPresentOrElse(this::displayAccount, this::displayLogin);
+----
+
+
+==== Interfaces
+
+Interfaces got private methods:
+
+[source,java]
+----
+public interface MyInterface {
+
+    private static void myPrivateMethod(){
+        System.out.println("Yay, I am private!");
+    }
+}
+----
+
+==== Other Language Features
+
+And a couple of other improvements, like an improved try-with-resources statement or diamond operator extensions.
+
+==== JShell
+
+Finally, Java got a shell where you can try out simple commands and get immediate results.
+
+[source,console]
+----
+% jshell
+|  Welcome to JShell -- Version 9
+|  For an introduction type: /help intro
+
+jshell> int x = 10
+x ==> 10
+----
+
+==== HTTPClient
+
+Java 9 brought the initial preview version of a new HttpClient. Up until then, Java's built-in Http support was rather low-level, and you had to fall back on using third-party libraries like Apache HttpClient or OkHttp (which are great libraries, btw!).
+
+With Java 9, Java got its own, modern client - although in preview mode, which means subject to change in later Java versions.
+
+==== Project Jigsaw: Java Modules and Multi-Release Jar Files
+
+Java 9 got the https://www.oracle.com/corporate/features/understanding-java-9-modules.html[Jigsaw Module System], which somewhat resembles the good old https://en.wikipedia.org/wiki/OSGi[OSGI specification]. It is not in the scope of this guide to go into full detail on Jigsaw, but have a look at the previous links to learn more.
+
+Multi-Release .jar files made it possible to have one .jar file which contains different classes for different JVM versions. So your program can behave differently/have different classes used when run on Java 8 vs. Java 10, for example.
+
+==== If you want more Java 9 practice
+
+Again, this is just a quick overview of Java 9 features and if you want more thorough explanations and exercises, have a look at the https://www.marcobehler.com/courses/32-core-java-features-version-8-12?utm_campaign=java_features_guide&utm_medium=java_features_guide&utm_source=java_features_guide[Java 9 core features] course.
+
+=== - Java 10 -
+
+There have been a few changes to Java 10, like Garbage Collection etc. But the only real change you as a developer will likely see is the introduction of the "var"-keyword, also called local-variable type inference.
+
+==== Local-Variable Type Inference: var-keyword
+
+[source,java]
+----
+// Pre-Java 10
+
+String myName = "Marco";
+
+// With Java 10
+
+var myName = "Marco"
+----
+
+Feels Javascript-y, doesn't it? It is still strongly typed, though, and only applies to variables _inside methods_ (thanks, https://www.reddit.com/user/dpash[dpash], for pointing that out again).
+
+=== - Java 11 -
+
+Java 11 was also a somewhat smaller release, from a developer perspective.
+
+
+==== Strings & Files
+
+Strings and Files got a couple new methods (not all listed here):
+
+[source,java]
+----
+"Marco".isBlank();
+"Mar\nco".lines();
+"Marco  ".strip();
+
+Path path = Files.writeString(Files.createTempFile("helloworld", ".txt"), "Hi, my name is!");
+String s = Files.readString(path);
+----
+
+==== Run Source Files
+
+Starting with Java 10, you can run Java source files _without_ having to compile them first. A step towards scripting.
+
+[source,bash]
+----
+ubuntu@DESKTOP-168M0IF:~$ java MyScript.java
+----
+
+==== Local-Variable Type Inference (var) for lambda parameters
+
+The header says it all:
+
+[source,java]
+----
+(var firstName, var lastName) -> firstName + lastName
+----
+
+==== HttpClient
+
+The HttpClient from Java 9 in its final, non-preview version.
+
+==== Other stuff
+
+Flight Recorder, No-Op Garbage Collector, Nashorn-Javascript-Engine deprecated etc.
+
+=== - Java 12 -
+
+Java 12 got a couple https://www.oracle.com/technetwork/java/javase/12-relnote-issues-5211422.html[new features and clean-ups], but the only ones worth mentioning here are Unicode 11 support and a preview of the new switch expression, which you will see covered in the next section.
+
+=== - Java 13 -
+
+You can find a complete feature list https://www.oracle.com/technetwork/java/13-relnote-issues-5460548.html[here], but essentially you are getting Unicode 12.1 support, as well as two new or improved preview features (subject to change in the future):
+
+==== Switch Expression (Preview)
+
+Switch expressions can now return a value. And you can use a lambda-style syntax for your expressions, without the fall-through/break issues:
+
+Old switch statements looked like this:
+
+[source,java]
+----
+switch(status) {
+  case SUBSCRIBER:
+    // code block
+    break;
+  case FREE_TRIAL:
+    // code block
+    break;
+  default:
+    // code block
+}
+----
+
+Whereas with Java 13, switch statements can look like this:
+
+[source,java]
+----
+boolean result = switch (status) {
+    case SUBSCRIBER -> true;
+    case FREE_TRIAL -> false;
+    default -> throw new IllegalArgumentException("something is murky!");
+};
+----
+
+==== Multiline Strings (Preview)
+
+You can _finally_ do this in Java:
+
+[source,java]
+----
+String htmlBeforeJava13 = "<html>\n" +
+              "    <body>\n" +
+              "        <p>Hello, world</p>\n" +
+              "    </body>\n" +
+              "</html>\n";
+
+String htmlWithJava13 = """
+              <html>
+                  <body>
+                      <p>Hello, world</p>
+                  </body>
+              </html>
+              """;
+----
+
+=== - Java 14 -
+
+==== Switch Expression (Standard)
+
+The switch expressions that were _preview_ in versions 12 and 13, are now standardized.
+
+[source,java]
+----
+int numLetters = switch (day) {
+    case MONDAY, FRIDAY, SUNDAY -> 6;
+    case TUESDAY                -> 7;
+    default      -> {
+      String s = day.toString();
+      int result = s.length();
+      yield result;
+    }
+};
+----
+
+==== Records (Preview)
+
+There are now record classes, which help alleviate the pain of writing a lot of boilerplate with Java.
+
+Have a look at this pre Java 14 class, which only contains data, (potentially) getters/setters, equals/hashcode, toString.
+
+[source,java]
+----
+final class Point {
+    public final int x;
+    public final int y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+    // state-based implementations of equals, hashCode, toString
+    // nothing else
+----
+
+With records, it can now be written like this:
+
+[source,java]
+----
+record Point(int x, int y) { }
+----
+
+Again, this is a preview feature and subject to change in future releases.
+
+==== Helpful NullPointerExceptions
+
+Finally NullPointerExceptions describe _exactly_ which variable was null.
+
+[source,java]
+----
+author.age = 35;
+---
+Exception in thread "main" java.lang.NullPointerException:
+     Cannot assign field "age" because "author" is null
+----
+
+==== Pattern Matching For InstanceOf (Preview)
+
+Whereas previously you had to (cast) your objects inside an instanceof like this:
+
+[source,java]
+----
+if (obj instanceof String) {
+    String s = (String) obj;
+    // use s
+}
+----
+
+You can now do this, effectively dropping the cast.
+
+[source,java]
+----
+if (obj instanceof String s) {
+    System.out.println(s.contains("hello"));
+}
+----
+
+==== Packaging Tool (Incubator)
+
+There's an incubating _jpackage_ tool, which allows to package your Java application into platform-specific packages, including all necessary dependencies.
+
+* Linux: deb and rpm
+* macOS: pkg and dmg
+* Windows: msi and exe
+
+==== Garbage Collectors
+
+The Concurrent Mark Sweep (CMS) Garbage Collector has been removed, and the experimental Z Garbage Collector has been added.
+
+
+=== - Java 15 -
+
+==== Text-Blocks / Multiline Strings
+
+Introduced as an experimental feature in Java 13 (see above), multiline strings are now production-ready.
+
+[source,java]
+----
+String text = """
+                Lorem ipsum dolor sit amet, consectetur adipiscing \
+                elit, sed do eiusmod tempor incididunt ut labore \
+                et dolore magna aliqua.\
+                """;
+----
+
+==== Sealed Classes - Preview
+
+If you ever wanted to have an even closer grip on who is allowed to subclass your classes, there's now the `_sealed_` feature.
+
+[source,java]
+----
+public abstract sealed class Shape
+    permits Circle, Rectangle, Square {...}
+----
+
+This means that while the class is `_public_`, the only classes allowed to subclass `_Shape_` are `_Circle_`, `_Rectangle_` and `_Square_`.
+
+
+==== Records & Pattern Matching
+
+The `_Records_` and `_Pattern Matching_` features from Java 14 (see above), are still in preview and not yet finalized.
+
+==== Nashorn JavaScript Engine
+
+After having been deprecated in Java 11, the Nashorn Javascript Engine was now finally removed in JDK 15.
+
+==== ZGC: Production Ready
+
+The https://wiki.openjdk.java.net/display/zgc/Main[Z Garbage Collector] is not marked experimental anymore. It's now production-ready.
+
+=== - Java 16 -
+
+
+==== Pattern Matching for instanceof
+
+Instead of:
+
+[source,java]
+----
+if (obj instanceof String) {
+    String s = (String) obj;
+    // e.g. s.substring(1)
+}
+----
+
+You can now do this:
+
+[source,java]
+----
+if (obj instanceof String s) {
+    // Let pattern matching do the work!
+    // ... s.substring(1)
+}
+----
+
+==== Unix-Domain Socket Channels
+
+You can now connect to Unix domain sockets (also supported by macOS and Windows (10+).
+
+[source,java]
+----
+ socket.connect(UnixDomainSocketAddress.of(
+        "/var/run/postgresql/.s.PGSQL.5432"));
+----
+
+==== Foreign Linker API - Preview
+
+A planned replacement for JNI (Java Native Interface), allowing you to bind to native libraries (think C).
+
+==== Records & Pattern Matching
+
+Both features are now production-ready, and not marked `_in preview_` anymore.
+
+==== Sealed Classes
+
+Sealed Classes (from Java 15, see above) are still in preview.
+
+
+=== - Java 17 -
+
+Java 17 is the new long-term support (LTS) release of Java, after Java 11.
+
+
+==== Pattern Matching for switch (Preview)
+
+Already available in many other languages:
+
+[source,java]
+----
+public String test(Object obj) {
+
+    return switch(obj) {
+
+    case Integer i -> "An integer";
+
+    case String s -> "A string";
+
+    case Cat c -> "A Cat";
+
+    default -> "I don't know what it is";
+
+    };
+
+}
+----
+
+Now you can pass `_Objects_` to switch functions and check for a particular type.
+
+==== Sealed Classes (Finalized)
+
+A feature that was delivered in Java 15 as a preview is now finalized.
+
+Recap: If you ever wanted to have an even closer grip on who is allowed to subclass your classes, there's now the `_sealed_` feature.
+
+[source,java]
+----
+public abstract sealed class Shape
+    permits Circle, Rectangle, Square {...}
+----
+
+This means that while the class is `_public_`, the only classes allowed to subclass `_Shape_` are `_Circle_`, `_Rectangle_` and `_Square_`.
+
+
+==== Foreign Function & Memory API (Incubator)
+
+A replacement for the Java Native Interface (JNI). Allows you to call native functions and access memory `_outside_` the JVM. Think C calls for now, but with plans for supporting additional languages (like C++, Fortran) over time.
+
+==== Deprecating the Security Manager
+
+Since Java 1.0, there had been a Security Manager. It's now deprecated and will be removed in a future version.
+
+
+=== - Java 18 -
+
+==== UTF-8 by Default
+
+If you tried, e.g. reading in files without specifying an explicit character ending, the operating system encoding was used in previous Java versions (e.g. UTF-8 on Linux and macOS, and Windows-1252 on Windows). With Java 18 this changed to UTF-8 by default.
+
+==== Simple Web Server
+
+Java 18 now comes with a rudimentary HTTP server, that you can start with:
+
+[source,console]
+----
+jwebserver
+----
+
+Learn more about its features https://openjdk.org/jeps/408[here].
+
+==== Other Not-So-Exciting-Stuff / Incubating Features
+
+For a full list and overview, check out https://www.happycoders.eu/java/java-18-features/[this article].
+
+=== - Java 19 -
+
+Java 19 added a couple of exciting features, like `_Virtual Threads_` and the new `_Foreign Function & Memory API_`, as well as `_Structured Concurrency_` and the `_Vector API_` - but they are all in preview mode, thus subject to change across the next releases.
+
+If you want to read up on these features and what's to come, check out https://www.happycoders.eu/java/java-19-features/[this article].
+
+=== - Java 20 -
+
+Apart from some smaller features, Java 20 mainly iterated on previously introduced preview features: Scope Values, Record Patterns, Pattern Matching for switch, Foreign Function & Memory API, Virtual Threads & Structured Concurrency. All of them are work-in-progress, i.e. haven't been finalized yet.
+
+If you want to read up on these features and what's to come, check out https://www.happycoders.eu/java/java-20-features/[this article].
+
+== Fin
+
+By now you should have a pretty good overview of a couple things:
+
+* How to install Java, which version to get and where to get it from (hint: https://adoptium.net/[Adoptium]).
+* What a Java distribution is, which ones exist and what the differences are.
+* What the differences between the specific Java versions are.
+
+Feedback, corrections and random input is always welcome! Simply leave a comment down below.
+
+Thanks for reading.
+
+== Acknowledgements
+
+Stephen Colebourne, who wrote a https://blog.joda.org/2018/09/time-to-look-beyond-oracles-jdk.html?showComment=1536303755275#c5934330550793525320[fantastic article] on the different, available Java distributions.
+
+

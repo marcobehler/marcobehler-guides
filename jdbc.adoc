@@ -1,0 +1,320 @@
+= JDBC - a short guide
+Marco Behler
+2022-06-23
+:page-layout: layout-guides
+:page-image: "/images/guides/undraw_circuit_sdmr.png"
+:page-description: You can use this guide to learn the basics of JDBC: How to connect to any database and execute SQL queries.
+:page-published: true
+:page-tags: ["jdbc", java sql", "java database"]
+:page-commento_id: guide-what-is-jdbc
+
+////
+:page-course_markdown: You might also be interested in my newly announced ![exercise logo](https://www.marcobehler.com/images/favicon.ico) [Something Guide](https://www.marcobehler.com/courses/spring-professional-security?utm_campaign=spring_security_guide&amp;utm_medium=spring_security_guide&amp;utm_source=spring_security_guide), which will teach Spring in ra ther unique way.
+////
+
+== What is JDBC?
+
+So, you want to connect your Java application to a database. It actually doesn't matter what kind of application, if server-side or frontend GUI. And it also doesn't matter what database, if MySQL, Postgres or SQLite (or any other).
+
+The way every Java application connects to a database is through the https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html[JDBC API].
+
+Even better, you do not need to install the JDBC API explicitly or include it as a third-party library in your project, because, by default, it comes with https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[every JDK/JRE].
+
+The only thing you need to get started with JDBC is a driver for your specific database.
+
+== JDBC Drivers
+
+=== What is a JDBC driver?
+
+To connect to your database in Java, you need a so-called JDBC driver. Every database (https://www.mysql.com/[MySQL], https://www.oracle.com/database/[Oracle], https://www.postgresql.org/[PostgreSQL] etc.) comes with their own JDBC driver, usually built by the database vendor and found on the database's website.
+
+Drivers do a fair amount of work, from the basics of opening socket connections from your Java application to the database, submitting your SQL queries, to more advanced features like offering abilities to receive events from the database (Oracle).
+
+So, to connect to, for example, a MySQL database, you will need to go to the https://dev.mysql.com/downloads/connector/j/[MySQL website], download the MySQL JDBC driver .jar file (also called:  Connector/J) and add it to your project.
+
+=== Where do I find the latest JDBC driver for my database?
+
+Here's a list of driver locations for the most popular databases for your reference:
+
+- https://jdbc.postgresql.org[Postgres]
+- https://dev.mysql.com/downloads/connector/j/[MySQL]
+- https://mariadb.com/kb/en/about-mariadb-connector-j/[MariaDB]
+- https://docs.microsoft.com/en-us/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server?view=sql-server-ver15[SQL Server]
+- https://www.ibm.com/support/pages/db2-jdbc-driver-versions-and-downloads[DB2]
+- https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html[Oracle]
+- https://www.h2database.com/html/main.html[H2]
+- http://db.apache.org/derby/[Derby]
+
+=== How to work with JDBC Drivers and Maven
+
+If you are using http://maven.apache.org/[Maven] or https://gradle.org/[Gradle] in your project, then you would add the JDBC driver as a dependency to your project instead of adding the .jar file manually.
+
+You'll find the Maven coordinates (=XML) tags for every JDBC driver in this great list by Vlad Mihalcea:
+
+https://vladmihalcea.com/jdbc-driver-maven-dependency/
+
+So, in the case of MySQL, you would add this tag to your pom.xml file.
+
+[source,xml,role=tooth]
+----
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>8.0.22</version>
+</dependency>
+----
+
+
+== JDBC Tutorial
+
+mbyoutube::KgXq2UBNEhA[]
+
+=== How to connect to a database
+
+As soon as you added the driver to your project, you are ready to open up JDBC connections to your database.
+
+We added the `_mysql-connector-java_` driver, so we are going to connect to a MySQL database. If you have ever used a database before, this will essentially be the same as opening up a terminal window and executing the 'mysql' command to use MySQL's command-line interface.
+
+In short, you will end up with an active database connection and can then run your SQL statements.
+
+So, to access a MySQL database called `_test_`, running on your local machine and valid username/password, you would execute the following code:
+
+[source,java]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyMainClass.java[]
+----
+
+Let's break this down:
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyMainClass.java[lines=10..12]
+----
+
+The simplest way to open a database connection is by calling `_DriverManager.getConnection_`, which will automatically detect the JDBC driver you added to your project, earlier.
+
+It takes three parameters:
+
+* [0] *URL*: A valid JDBC URL. You are going to see what these have to look like in the next section.
+* [1] *Username*: Self-explanatory
+* [2] *Password*: Self-explanatory
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyMainClass.java[lines=14..16]
+----
+
+As soon as you have a connection, you can execute SQL queries with it. As we don't make this example too complicated, we're just checking if the connection is alive and kicking (and hasn't been canceled by the database server or something similar).
+
+There's one last thing to note. Let's take a step back again:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyMainClass.java[lines=10..12;19]
+----
+
+Notice the `_try_` block around our `_getConnection_` call? It is a https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html[try-with-resources] statement and makes sure that your connection automatically gets closed at the end of the block, without you having to close it manually. That's a handy convenience function.
+
+As soon as you have an open database connection (see above), it is time to fire your first <<sql-queries, SQL queries>> against the database.
+
+=== (Optional) Understanding JDBC Connection Strings
+
+The string passed to the `_DriverManager.getConnection()_` method above is what is called the JDBC connection string and is database specific. More specifically a connection string:
+
+* Always starts with `_jdbc_`, followed by a colon (:).
+* Then has an identifier for the database, like `_mysql_` or `_oracle_`, followed by a colon (:).
+* Followed by a `_database specific_` connection string.
+
+Let's check out our MySQL example from above again:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyMainClass.java[lines=11..11]
+----
+
+1. It starts with `_jdbc_`:
+2. Then `_mysql:_`
+3. Then a MySQL specific string: `_localhost/test?serverTimezone=UTC_`. ServerTimezone is a property that only a MySQL server understands, so this won't work for e.g. PostgreSQL.
+
+Here's a couple examples of what those connection strings can look like for other databases:
+
+- MySQL ->  `_jdbc:mysql://localhost/mydb_`
+- Postgres -> `_dbc:postgresql://localhost/test_`
+- Oracle -> `_jdbc:oracle:thin:@prodHost:1521:ORCLE_`
+- SQL Server -> `_jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=myDb_`
+
+The gist: Do not freak out if your connection string looks _complex_. Always consult the database's documentation to decipher it.
+
+A good cheat-sheet for finding out what your connection string has to look like can be found here: https://vladmihalcea.com/jdbc-driver-connection-url-strings/[JDBC Driver Strings].
+
+mb_ad::jdbc_workbook[]
+
+
+[[sql-queries]]
+=== How To Execute SQL Select Statements
+
+[source,java,indent=0]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=20..32]
+----
+
+There are two parts to selecting data with JDBC:
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=20..22]
+----
+
+First, you'll need to create a `_PreparedStatement_`, which takes your SQL as input, with any placeholders marked as `_?_`. Here we are selecting everything from an imaginary `_users_` database table, with a `_where_` condition on the first_name column.
+
+You'll want to use `_?_` placeholders for any variable data (like the first name) to be safe from https://www.w3schools.com/sql/sql_injection.asp[SQL Injection]. You'll need to set them on your PreparedStatement with the correct setter (`_setString_` for strings, `_setInt_` for ints etc). Also, keep in mind that the placeholders are numbered, starting with 1. So if you have just one question mark, you'll need to call `_setString(1, yourString)_`. For the second one `_setString(2, someOtherString)_` etc.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=24..26]
+----
+
+Second, executing the query will return you a `_ResultSet_`, which is basically a list of all the rows that your database found for a given query. And you'll have to traverse through that ResultSet with a while-loop, calling `_rs.next()_`.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=27..32]
+----
+
+
+In our example above we simply print out the `_first_name_` and `_last_name_` of every user that we found. Note that the ResultSet offers different get methods, like `_getString_` or `_getInt_` or `_getDate_`, that you need to call depending on the column types of your returned database records. FirstName and LastName are string columns, so we simply call `_getString_`.
+
+Simple, right?
+
+
+=== How To Execute SQL Insert Statements
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=34..39]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=34..37]
+----
+
+Inserting rows into the database is somewhat similar to selecting rows. Again, you create a PreparedStatement, with the only difference that you now call the `_executeUpdate_`  method on the statement (don't get thrown off by the name, there is no executeInsert).
+
+Once more, you should use a PreparedStatement with `_?_` placeholders to safeguard against SQL injection.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=38..39]
+----
+
+You won't have to traverse through a ResultSet with inserts, instead, executeUpdate will return you the actual number of inserted rows (1 in our case if everything worked correctly).
+
+
+=== How To Execute SQL Update Statements
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=41..45]
+----
+
+Updating rows is basically identical to inserting rows. You create a `_PreparedStatement_` and call `_executeUpdate_` on it.
+
+Once more, you should use a PreparedStatement with `_?_` placeholders to safeguard against SQL injection. `_ExecuteUpdate_` will now return you the actual number of updated rows.
+
+=== How To Execute SQL Delete Statements
+
+SQL Deletes are exactly the same as SQL Updates, when it comes to JDBC.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/QueriesClass.java[lines=47..51]
+----
+
+
+== JDBC Connection Pooling
+
+=== What is a JDBC Connection Pool?
+
+Opening and closing database connections (think: tcp sockets and connections) like you did above with the `_DriverManager.getConnection_` method takes some time.
+
+Especially in web applications, you do not want to open up a fresh database connection for every single user action, rather you want to have a https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing[small pool of connections] that are always open and shared between users.
+
+That's what JDBC connection pools are for. A connection pool keeps open a small number of database connections (think: 10) and instead of opening up database connections yourself, you'll ask the connection pool to give you one of these (10) connections.
+
+=== What is the best JDBC connection pool?
+
+Unfortunately, In Java land you are hammered with a plethora of options when it comes to connection pools:
+
+- Older, legacy pools: https://commons.apache.org/proper/commons-dbcp/[Apache Commons DBCP] and https://www.mchange.com/projects/c3p0/[C3P0].
+- https://github.com/brettwooldridge/HikariCP[HikariCP] (*recommended*)
+- http://www.vibur.org/[Vibur-dbcp]
+- https://docs.oracle.com/database/121/JJUCP/intro.htm#JJUCP8109[Oracle's UCP]
+- https://tomcat.apache.org/tomcat-9.0-doc/jdbc-pool.html[Tomcat JDBC Connection Pool]
+
+The issue with the older connection pools (DBCP / C3P0) is that they lack proper, sane configuration defaults, have trouble with performance and handling https://github.com/brettwooldridge/HikariCP/wiki/Bad-Behavior:-Handling-Database-Down[error cases] and are - on top - often misconfigured.
+
+Therefore, for newer projects I would recommend the following pools:
+
+https://github.com/brettwooldridge/HikariCP[HikariCP] or http://www.vibur.org/[Vibur-dbcp] as a great default choice (HikariCP is Spring Boot's default choice). Use https://docs.oracle.com/database/121/JJUCP/intro.htm#JJUCP8109[Oracle's UCP], if you are working with Oracle databases.
+
+All of these connection pools are rock solid, performant, and offer sane defaults & error handling.
+
+=== How to use a JDBC connection pool
+
+Independent of the option you choose, you will then, in your JDBC code, not open up connections yourself through the DriverManager, but rather you will construct a connection pool, represented by the `_DataSource_` interface, and ask it to give you one of its connections.
+
+Let's see some code. It is exactly the same code as above (connecting to MySQL), online re-written to use a `_DataSource_`, instead of the `_DriverManager_`.
+
+[source,java]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyHikariCpClass.java[]
+----
+
+Let's break it down.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyHikariCpClass.java[lines=12..12]
+----
+
+You need to create a connection pool data source somewhere in your application. Here, we extracted the creation code to another method.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyHikariCpClass.java[lines=24..30]
+----
+
+This is HikariCP specific configuration code. In the end, though, we simply set the same parameters we would have set on the `_DriverManager.getConnection()_` call.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/MyHikariCpClass.java[lines=14..14]
+----
+
+As you can see, you don't directly open connections anymore through the DriverManager, but you ask the DataSource instead. The first time we ask our HikariDataSource for a database connection, it will initialize a pool behind the scenes - which means opening up (by default) 10 database connections and giving you one of these ten.
+
+Great! Now, you don't have to worry about the performance penalties anymore of opening and closing database connections.
+
+
+mb_ad::jdbc_workbook[]
+
+== Fin
+
+This article covered the basics of JDBC, from drivers to handling connections and SQL queries, to connection pooling.
+
+The gist is: When using JDBC, you are working with bare metal. You have the full power and speed of SQL and JDBC at your hand, but JDBC comes with no convenience features (think about how much manual work traversing a ResultSet is).
+
+That's where other Java database frameworks & libraries come in. From light-weight JDBC wrappers, to full-blown ORM solutions like Hibernate/JPA.
+
+You can get a great overview of all these frameworks in the https://www.marcobehler.com/guides/java-databases-jdbc-hibernate-spring-data[Java & Databases: Frameworks & Libraries] article.
+
+That's it for today. Thanks for reading.
+

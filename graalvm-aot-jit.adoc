@@ -1,0 +1,232 @@
+= Understanding GraalVM, AOT & JIT
+Marco Behler
+2023-05-04
+:page-layout: layout-guides
+:page-image: "/images/guides/undraw_time_management_re_tk5w.png"
+:page-description: You can use this guide to understand what GraalVM is, how it works and how Just-In-Time (JIT) compilation compares to Ahead-Of-Time (AOT) compilation).
+:page-published: true
+:page-tags: ["java native image", "graalvm", "aot", "jit"]
+:page-commento_id: graalvm-aot-jit
+
+== Intro
+
+I was lately getting a couple questions about GraalVM, AOT, JIT, https://www.graalvm.org/22.0/reference-manual/native-image/[Java Native Images], etc.
+
+Namely: If Graal's native executables start nearly instantaneously, are smaller and consume fewer resources - why would you ever want to use something else for your Java/JVM projects?
+
+Let's find out!
+
+== What Is GraalVM?
+
+A lot of words seem to be thrown together when talking about anything `_GraalVM_`. Let's try and shed some light.
+
+* https://www.graalvm.org/[GraalVM] is, who would have thought, a Java Virtual Machine (JVM), which can run Java (byte)code and is maintained by Oracle.
+* Not only can GraalVM run Java, it can also run https://www.graalvm.org/latest/reference-manual/r/Interoperability/[JS, Python, Ruby and other languages I forgot] through https://www.graalvm.org/latest/graalvm-as-a-platform/language-implementation-framework/[Truffle Framework].
+* There is https://www.graalvm.org/latest/reference-manual/java/compiler/[Graal Compiler], a Just-In-Time (JIT) compiler.
+* There is also https://www.graalvm.org/latest/reference-manual/native-image/[Native Image], which is Graal's Ahead-of-Time (AOT) compiler.
+
+Well...what do you now do with this information?
+
+* Should you be using GraalVM instead of a 'normal' HotSpot VM? So, simply use Graal's JIT compiler?
+* Or should you use its AOT compiler and produce native images?
+* Or simply give up and run towards PHP?
+
+To give you a proper answer, we'll have to take a quick tour through Java's compiler landscape. And as always, we'll start with the very basics.
+
+== What Is Javac?
+
+The default java compiler, called `_javac_`, takes your Java source code (your .java files), like this:
+
+[source,java]
+----
+//...public static void main etc
+
+public static int add(int a, int b) {
+  return a + b;
+}
+
+//...
+----
+
+And translates it into Java bytecode, your class files, e.g. `_Main.class_`. You can run those on any machine that has a JVM installed.
+
+This is what the bytecode for the above method looks like (generated through the `_javap -c Main.class_` command):
+
+[source,console]
+----
+0: iload_0
+1: iload_1
+2: iadd
+3: ireturn
+----
+
+== What Happens to Your Bytecode?
+
+When you now try and run your Java class/application (e.g. `_java Main.class_`, your bytecode above hasn't been compiled to machine code yet, hence your JVM needs to `_interpret_` the bytecode. For that, it uses the TemplateInterpreter and in case you are interested, you might want to read up on it https://albertnetymk.github.io/2021/08/03/template_interpreter/[here].
+
+What does the TemplateInterpreter do?
+
+In basic terms: Think about it as going through the statements above (e.g. `_istore_1_`) one after another and figuring out what needs to be executed for this statement on the specific operating system and architecture you are currently running.
+
+== What Is a JIT Compiler, Again?
+
+The JVM, however, is smart and doesn't just want to endlessly interpret your bytecode. It also remembers the code your program executes a lot (so-called `_hot paths_`) and will then directly compile that bytecode to machine code (for the curious: look up Java's C1 and C2 compilers and `_tiered compilation_`).
+
+Through a bunch of static code analysis and runtime information, the JIT Compiler can then spit out platform-specific, optimized machine code.
+
+Remember the good, old assembler days?
+
+[source,console]
+----
+push ebp
+mov ebp, esp
+mov eax, [ebp + 8]
+mov ebx, [ebp + 12]
+add eax, ebx
+mov esp, ebp
+pop ebp
+ret
+----
+
+== 	So, What Are the Advantages of the JIT Approach?
+
+Short and crispy:
+
+* The original Java promise: Write Once, Run Anywhere (a JVM is installed).
+* After a warmup interpretation period, get 'great' performance at _runtime_ -> "Just In Time".
+
+== What Is an AOT Compiler, Then?
+
+Instead of going the route:
+
+[source,console]
+----
+.java -> javac -> bytecode -> jvm -> interpreter -> JIT
+----
+
+an AOT Compiler can also go the following route:
+
+[source,console]
+----
+.java -> AOT magic -> native executable (think .exe / elf)
+----
+
+Essentially, an AOT compiler will do a bunch of static code analysis (at build time, as opposed to runtime/JIT), and then create a native executable for a specific platform: Windows, Mac, Linux, x64, ARM etc. etc - think, for example, you'll end up with a `_Main.exe_`.
+
+And that means you don't have to do bytecode interpretation/compilation after starting your program, instead you get application startup at full speed. The flip side being, you have to create a specific executable for `_every. single. platform x architecture combination_` you want your program to run on (+ a whole other bunch of limitations we will talk about in a bit). This is essentially the opposite of the original Java promise.
+
+
+== OK, OK, but What About GraalVM Already?
+
+As mentioned at the very beginning, GraalVM comes with both, a JIT _AND_ an AOT compiler, though people mistakenly might conflate everything `_Graal_` with its Native Image capabilities.
+
+* Graal Compiler (JIT) is essentially a replacement to the C2 (JIT) compiler. (If you care about performance comparisons between the two, you might want to have a look https://martijndwars.nl/2020/02/24/graal-vs-c2.html[here], https://medium.com/javarevisited/graal-vs-c2-who-runs-kotlin-faster-82f03f1b11dd[here] or https://ionutbalosin.com/wp-content/uploads/2019/10/A-race-of-two-compilers-GraalVM-JIT-versus-HotSpot-JIT-C2_j13.pdf[here]).
+* Native Image is the AOT Compiler, and can create native executables for your Java source files.
+
+== Are There Any Issues With AOT, Then?
+
+Yes, there are.
+
+When Graal/any AOT compiler creates those native executable, it needs to do static code analysis with a so-called `_closed-world assumption_`. Effectively meaning that it needs to know *all classes* that are reachable at runtime *during build time*, otherwise the code won't end up in the final executable.
+
+And this means that everything which involves dynamic loading, such as reflection, JNI or proxies - all the good things that a lot of Java libraries and projects use - is a potential issue.
+
+Example time!
+
+== A Warm-Up Reflection Example
+
+[source,java]
+----
+public static void main(String[] args) {
+  if (isFriday()) {
+    String myClass = "com.marcobehler.MyFancyStartupService";
+    MyFancyStartupService instance = (MyFancyStartupService)
+                                Class.forName(myClass)
+                                .getConstructor()
+                                .newInstance();
+    instance.cashout();
+  }
+}
+----
+
+Static code analysis doesn't execute your code, hence the compiler doesn't know if it is indeed Friday, and thus your MyFancyStartupService won't be visible to it and not end up in the final executable.
+
+There are workarounds for this: You can specify metadata in form of https://www.graalvm.org/dev/reference-manual/native-image/overview/Bundles/[JSON files], that make the AOT compiler aware of the `_MyFancyStartupService_`, in this case. This also means that _any_ library that you want to include in your project needs to be "AOT ready", and when applicable, provide this metadata.
+
+== Any Real World Examples?
+
+Let's look at a more realistic example from the https://spring.io/[Spring universe].
+
+Depending on specific properties or profiles you set when starting up your Spring application, you can end up with different loaded beans _at runtime_.
+
+Have a look at the following `_AutoConfiguration_`, which will only create a FlamegraphProvider, bean if a specific property is set, e.g., in a configuration file on application startup.
+
+Again, there is no way for the Graal compiler to know, during build time, if that is going to be the case or not, hence Spring (Boot) flat out does not support https://docs.spring.io/spring-boot/docs/current/reference/html/native-image.html[@Profiles and @ConditionalOnProperties] for their native images.
+
+[source,java]
+----
+@AutoConfiguration
+@ConditionalOnProperty(prefix = "flamegraphs",
+                       name = "enabled",
+                       havingValue = "true")
+public static class FlamegraphConfiguration {
+
+  @Bean
+  public FlamegraphProvider flamegraphProvider() {
+      // ...
+  }
+
+}
+----
+
+
+== Any Other Potential Issues?
+
+Yes.
+
+* AOT compilation is very resource demanding. In the case of Spring's Native Image, we are talking about many, many gigabytes of memory and heavy CPU usage needed for compilation. That'll make your CI/CD provider happy, though!
+* It also takes significantly more time to create a native executable, as opposed to just creating bytecode. If you take a skeleton Spring Boot app, for example, we're talking minutes (AOT), as opposed to seconds (JIT).
+* Depending on your platform (looking at you, Windows!), it is also very cumbersome to set up all the required SDKs and libraries to be even able to `_start_` native compilation.
+* If you are not in control of your target environment, like is the case for your stereotypical desktop application: You are going to end up with an _insane_ CI/CD matrix, to create native executables for a variety of supported architectures / platforms. And you will need to support and maintain that CI/CD matrix.
+* This is not an issue when putting, for example, your server executable into a Docker container, but more on that in a second.
+
+== So do you REALLY have experience with this?
+
+Got me! Apart from toy server applications and a real-life CLI application written with https://picocli.info/[picocli], I haven't got experience with trying to produce native executables for real-world, mid-to-large sized applications.
+
+That's why I can only rely on our beloved https://www.reddit.com/r/java/comments/10cv886/personal_experiences_with_native_graalvm_images/[Reddit hivemind] for experiences, with one user commenting in early 2023.
+
+[source,console]
+----
+I do not even think we are in the alpha stage.
+
+For example, for 2 days I am fighting with
+a simple microservice using JPA, MySQL,
+some transactions and without success.
+
+Fixed at least 4 bugs, and now I gave up.
+I cannot imagine what problems can arise in mid-size projects.
+----
+
+== Why Do We Want AOT in the First Place?
+
+It is 'awesome' to see applications start-up in milliseconds, when compiled to and run as a native executable. I suppose that is why native Images often are touted to be a perfect fit for, e.g. Lambdas or that they have found their perfect match in CLI applications, where you are also less likely to run into the AOT limitations because of the project scopes.
+
+On the other hand, at peak absurdity, to create a native executable, to put it into a Docker image, to then be able to quickly spin up a container for every request (which was the proposal for one of the past projects of my good friend https://twitter.com/ae____[@ae] )...I cannot help but think we went full circle to the good old CGI-bin days of Perl.
+
+To be slightly less sarcastic.
+
+If you can live with its limitations and work around them for your specific environment, then AOT is a great choice. Otherwise, enjoy the benefits or your JIT'ed server-side applications, don't worry too much about the hype and enjoy your coding! :)
+
+
+== Acknowledgements
+
+https://twitter.com/tagir_valeev[Tagir Valeev], https://aakinshin.net/[Andrey Akinshin] and https://twitter.com/ae____[@ae] for knowledge/comments/corrections/discussion.
+
+Special thanks to https://www.reddit.com/user/PartOfTheBotnet/[PartOfTheBotnet], who pointed out the wrong original bytecode (in this article's first revision) and gave the hint of using `_javap_` to extract the correct one.
+
+== Fin
+
+Want to see more of these short technology deep dives? Leave a comment below.
+
+Meanwhile, check out my YT series on https://www.youtube.com/playlist?list=PLIRBoI92yManB1eHCupZ6iG61qMTA9hWe[how to build a cli text editor - with plain Java].

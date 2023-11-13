@@ -1,0 +1,94 @@
+= Spring And Spring Boot Versions
+Marco Behler
+2023-09-08
+:page-layout: layout-guides
+:linkattrs:
+:page-image: "/images/guides/undraw_update_uxn2.png"
+:page-description: A short guide to the latest Spring and Spring Boot versions, as well as information on the release cycle and maintenance windows.
+:page-published: true
+:page-hidequicklinks: true
+:page-tags: ["spring boot version", "spring versions", "spring framework version"]
+:page-commento_id: /guides/spring-and-spring-boot-versions
+:springbootversion: 3.1.3
+:springframeworkversion: 6.0.11
+:publicationmonth: September 2023
+
+== What is the latest Spring Framework version?
+
+The current stable version, as of {publicationmonth}, is *Spring {springframeworkversion}*. You can always find new version announcements on https://github.com/spring-projects/spring-framework/releases.
+
+== What is the latest Spring Boot version?
+
+The current stable version, as of {publicationmonth}, is *Spring Boot {springbootversion}*. You can always find new version announcements on https://github.com/spring-projects/spring-boot/releases.
+
+== What Java version does the latest Spring Boot support?
+
+Spring Boot {springbootversion} requires Java 17 as a minimum version. If you are currently using Java 8 or 11, you'll need to stick to the 2.x release train.
+
+== What Spring version should I use?
+
+Choosing a Spring version is relatively simple:
+
+* If you are building new Spring Boot projects, the version of Spring you are using is already pre-defined for you. If you are using Spring Boot 3.x, for example, you will be using Spring 6.x (though, in theory you could override this).
+
+* If you are using plain Spring in a greenfield project, you can obviously choose whatever version you want, which will usually be the latest one.
+
+* If you are using Spring in a legacy project, you can always think about upgrading to a newer Spring version if that makes sense from a business perspective (or if you want to respect the https://spring.io/blog/2019/12/03/spring-framework-maintenance-roadmap-in-2020-including-4-3-eol[EOL announcements])- Spring versions have a high amount of compatibility (see next paragraph).
+
+Realistically, you'll find Spring Framework versions 4.x-5.x, as well as Spring Boot versions 1.x-2.x used by companies, though the rare, legacy 3.x (initial release: 2009) Spring project also pops up.
+
+== How often do new versions of Spring get released? How long are they supported?
+
+You'll need to differentiate between Spring Framework and Spring Boot (which builds upon Spring Framework).
+
+Here's a nice, little graph showing you Spring Framework's version history:
+
+[ditaa,springversions-v3,png]
+----
+|
+|   2003    2006     2009        2013      2017    2020   2022
+|----|--------|--------|----------|----------|------|-------|--->
+|   1.0      2.0      3.0        4.0        5.0    5.3     6.x
+|
+----
+
+You can see that the initial Spring release was ~17 years ago, with major framework versions being released every 3-4 year. This does not account for maintenance branches, however.
+
+* Spring 4.3 for example, has been released in June 2016, and will be supported until the end of 2020.
+* Support for Spring 5.0 and 5.1 will be cut off at the end of 2020, in favor of Spring 5.2 and Spring 5.3, which have been released in September 2019 and October 2020, respectively.
+* Spring 5.2.x will be supported until the end of 2021.
+* Spring 5.3.x has long-term support provided on JDK 8, JDK 11 & JDK 17.
+
+See the https://github.com/spring-projects/spring-framework/wiki/Spring-Framework-Versions[Spring Framework Versions] page for all support timelines.
+
+Here's another graph showing you Spring Boot's version history. As you can see, versions are released much more frequently.
+
+[ditaa,springbootversions-v5,png]
+----
+|
+|   2014    2014     2014/2015    2015/2016    2017     Mar, 2018     Oct, 2018       Oct, 2019        May, 2020      Dec, 2020      May, 2021        Nov, 2021       May, 2022    Nov, 2022
+|----|--------|----------|------------|----------|---------|-----------|----------------|----------------|---------------|-----------------|---------------|---------------|-----------|-->
+|   1.0      1.1        1.2          1.3        1.5       2.0         2.1.x            2.2.x            2.3.x           2.4.x             2.5.x          2.6.x           2.7.x       3.x
+|
+----
+
+
+== What are the differences between Spring versions?
+
+Similar to the JVM, Spring versions are _insanely_ backwards compatible, which means you can (essentially) still run your Spring 1.0 xml files with the latest Spring 6.x (though I admittedly haven't tried that out, yet). In addition, upgrading from, say 3 to 6 is also possible with a bit of effort (see this https://github.com/spring-projects/spring-framework/wiki/Upgrading-to-Spring-Framework-6.x[migration guide]).
+
+So, in general, newer Spring versions build _on top_ of the older Spring versions and have minimal breaking changes (compared with, say Python 2 vs 3). So, all core concepts you learned for Spring version 3 or 4 are still true for Spring version 5.
+
+You can get a great overview of what changed over the last 7 years in the individual Spring versions, here:
+
+* https://docs.spring.io/spring/docs/4.3.x/spring-framework-reference/htmlsingle/#spring-whats-new[What's new in Spring 4]
+* https://github.com/spring-projects/spring-framework/wiki/What's-New-in-Spring-Framework-5.x[What's new in Spring 5]
+* https://github.com/spring-projects/spring-framework/wiki/What's-New-in-Spring-Framework-6.x[What's new in Spring 6]
+
+To give you an executive summary:
+
+The core (dependency injection, transaction management etc.) always stays the same or gets extended. Spring, however, goes with time and offers support for newer Java language versions, test framework enhancements, Websockets, reactive programming, etc.
+
+== Fin
+
+Do you have any more questions regarding Spring versions? Let me know in the comments!

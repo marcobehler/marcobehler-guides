@@ -1,0 +1,968 @@
+= Java & Databases: An Overview of Libraries & APIs
+Marco Behler
+2022-08-24
+:page-layout: layout-guides
+:page-icon: design_app
+:sourcedir: /mnt/c/dev/database-access/src/com/company
+:linkattrs:
+:page-image: "/images/guides/undraw_server_status_5pbv.png"
+:page-description: You can use this guide to get an overview of all popular database libraries & APIs in Java. Covers JDBC, Hibernate, JPA, jOOQ, Spring Data and more.
+:page-published: true
+:page-serieslink: https://www.marcobehler.com/courses/2-hibernate-jpa-getting-started?pk_campaign=Guide-Companion
+:page-seriesdescription: "Watch the Java First section of this guide as screencasts"
+:page-tags: ["java", "databases"]
+:page-commento_id: /guides/java-database-access-an-overview-guide
+
+
+[*Editor’s note*: At ~6,500 words, you probably don't want to try reading this on a mobile device. Bookmark it and come back later.]
+
+== Java & Databases: An Introduction
+
+Whenever you want to access a database with your (server or desktop) Java application three questions pop up:
+
+* Are you approaching your application from a Java-first or database-first perspective? Do you want to write Java classes or SQL statements first? Do you need to integrate with an existing database?
+* How do you execute SQL statements? From small CRUD operations (select from, insert into, update where) to more complex SQL reporting queries (analytics functions)?
+* How easily can you do object-relational mapping? Which means mapping between Java objects and database tables and rows?
+
+To illustrate the concept of object-relational mapping, imagine a Java class like this:
+
+[source,java,role=tooth]
+----
+public class User {
+
+    private Integer id;
+
+    private String firstName;
+
+    private String lastName;
+
+    // Constructor/Getters/Setters....
+
+}
+
+----
+{empty} +
+
+[[example-table]]
+
+In addition to your Java class, you also have a _USERS_ database table. Imagine you have three users (i.e. rows) saved to your table, which means it looks roughly like this:
+
+.Users
+[.table]
+|===
+|*id*|*first_name*|*last_name*
+|1|hansi|huber
+|2|max|mutzke
+|3|donald|trump
+|===
+
+
+How do you now map between your Java class and that table?
+
+It turns out there are various ways to do this in Java:
+
+1. https://en.wikipedia.org/wiki/Java_Database_Connectivity[JDBC], the low-level choice.
+2. More convenient, lightweight SQL frameworks like https://www.jooq.org/[jOOQ] or https://spring.io/projects/spring-framework[Spring's JDBC abstraction].
+3. Full-blown ORMs like https://hibernate.org/[Hibernate] or any other https://en.wikipedia.org/wiki/Java_Persistence_API[JPA implementation].
+
+We will cover all the different options in this guide, but it is very important to understand JDBC basics first.
+
+Why? Because every other library, be it Spring or Hibernate, builds _on top_ of these basics - they all use JDBC under the hood.
+
+
+[[plain-jdbc]]
+== JDBC: Low-Level Database Access
+
+=== What is JDBC?
+
+The most low-level way to accessing databases in Java, is through the JDBC API (https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html[Java Database Connectivity]).
+
+Every framework that you encounter later on in this article uses JDBC under the hood. But you can, of course, choose to use it directly to execute your SQL queries.
+
+The good thing about JDBC: You don't need any 3rd-party libraries as it comes with https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[every JDK/JRE]. You only need an appropriate JDBC driver for your specific database.
+
+*Recommendation:* If you want to get a good overview of how to get started with JDBC, where to find drivers, setup connection pools & information on executing SQL queries, I recommend you to read my https://www.marcobehler.com/guides/jdbc[What is JDBC?] article first, and then continue with this article.
+
+=== JDBC to Java : An example
+
+Imagine you have a database containing that `_Users_` table from above. You want to write a query that selects all Users from that table and converts them to a `_List<User_`, a list of Java objects.
+
+A small spoiler: JDBC does not help you at all converting from SQL to Java Objects (or the other way around). Let's see some code:
+
+[source,java]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/JdbcQueries.java[]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/JdbcQueries.java[lines=10..13]
+----
+
+Here we are opening a database connection against a MySQL database. You should not forget to wrap your `_DriverManager.getConnection_` call in a https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html[try-with-resources] block, so your connection gets automatically closed again, once you are done with your code block.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/JdbcQueries.java[lines=14..15]
+----
+
+You need to create and execute your SQL statement, which you do by creating and executing a Java PreparedStatement. (PreparedStatements allow you to have `_?_` placeholders in your SQL statements, but we'll ignore that for now.)
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/marcobehler/jdbc-article/master/src/main/java/com/marcobehler/JdbcQueries.java[lines=17..26]
+----
+
+You need to manually traverse through the ResultSet (i.e. all rows that your SQL query returns) and then create your Java user objects by hand, by calling the right getters on each ResultSet row, with the correct column names AND types (`_getString()_`, `_getInt()_`).
+
+In addition, we also conveniently left out two things in our code above:
+
+* Placeholders in (more complex) SQL queries (think: `_select * from USERS where name = ? and registration_date = ?_`), as you want to protect against https://www.w3schools.com/sql/sql_injection.asp[SQL injection].
+* Transaction handling, which includes opening and committing transactions, as well as rolling them back, whenever an error happens.
+
+However, the example above demonstrates rather well, why JDBC is considered to be rather low-level. Because you have a lot of manual work to do to go from SQL<>Java.
+
+
+mb_ad::jdbc_workbook[]
+
+=== JDBC Summary
+
+When using JDBC, you are basically working with bare metal. You have the full power and speed of SQL and JDBC at your hand, but you need to make sure to somehow convert back and forth between your Java Objects and the SQL code yourself.
+
+You also have to make sure to be a good developer and open/close database connections yourself.
+
+That's where more convenient, light-weight frameworks come in, which we will cover in the next section.
+
+
+
+== Java ORM Frameworks: Hibernate, JPA and more.
+
+Java developers are _usually_ more comfortable with writing Java classes, than with writing SQL statements. Hence many (greenfield) projects are written with a Java-First approach, which means that you create your Java class _before_ you create the corresponding
+database table.
+
+This naturally leads to the object-relational mapping question: How do you map from your newly written Java class to your (yet to be created) database table? And could you even generate your database _from_ those Java classes? At least, initially?
+
+This is where full-blown ORMs, like https://hibernate.org/[Hibernate] or any other https://en.wikipedia.org/wiki/Java_Persistence_API[JPA] implementation come into play.
+
+=== What is Hibernate?
+
+https://hibernate.org/[Hibernate] is a mature ORM (Object-Relational Mapping) library, which has first been released in 2001 (!), with a current https://hibernate.org/orm/releases/[stable version of 5.4.X], and version 6.x being in development.
+
+Even though countless books have been written about it, here is the attempt to summarize what Hibernate does well:
+
+1. It lets you (relatively) easily convert between database tables and java classes, without you having to do much apart from an initial mapping.
+2. It allows you to not have to write any SQL code for (basic) CRUD operations. Think: creating a user, deleting a user, updating a user.
+3. It offers a couple query mechanisms (HQL, Criteria API) on top of SQL to query your databases. For now, let's say these are "object-oriented" versions of SQL, even though this is a bit meaningless without examples, which will follow later.
+
+Finally, let's look at some code. Imagine, you have the following database table, which is basically the same table you used in the <<plain-jdbc,plain JDBC section>>.
+
+[source,sql,role=tooth]
+----
+create table users (
+    id integer not null,
+    first_name varchar(255),
+    last_name varchar(255),
+    primary key (id)
+)
+----
+
+You also have the following, corresponding Java class.
+
+[source,java,role=tooth]
+----
+public class User {
+
+	private Integer id;
+
+	private String firstName;
+
+	private String lastName;
+
+	//Getters and setters are omitted for brevity
+}
+----
+
+Also imagine, you downloaded the https://mvnrepository.com/artifact/org.hibernate.orm/hibernate-core[hibernate-core.jar] and added it to your project. How do you now tell Hibernate that your User.java class should be mapped to the Users database table?
+
+That's where Hibernate's mapping annotations come into play.
+
+=== How to use Hibernate's mapping annotations
+
+Out of the box, Hibernate obviously has no way of knowing which of your classes should be mapped how to database tables. Should the User.java class be mapped to a _invoices_ database table or to a _users_ table?
+
+Historically, to let Hibernate know what it should do, you wrote mapping https://docs.jboss.org/hibernate/orm/3.5/reference/en/html/mapping.html[.xml files].
+
+We will not cover xml mapping in this guide, as for the past couple of years it has been superseded with an _annotation-based_ mapping approach.
+
+You might have encountered some of these annotations already, like _@Entity_, or _@Column_, or _@Table_. Let's have a look at what our annotated User.java class from above would look like with these mapping annotations.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Column;
+import javax.persistence.Id;
+
+@Entity
+@Table(name="users")
+public static class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer id;
+
+    @Column(name="first_name")
+    private String firstName;
+
+    @Column(name="last_name")
+    private String lastName;
+
+	//Getters and setters are omitted for brevity
+}
+
+----
+
+It would not be in the scope of this guide to go too much into detail of every annotation, but here's a quick summary:
+
+1. *@Entity* : a marker for Hibernate to understand: Map this class do a database table.
+2. *@Table* : tells Hibernate which database table to map the class to.
+3. *@Column* : tells Hibernate which database column to map the field to.
+4. *@Id* and *@GeneratedValue* : tells Hibernate what the primary key of the table is and that it is autogenerated by the database.
+
+There's of course a lot more annotations, but you get the picture. With Hibernate you write your Java classes, and then need to make sure to annotate them with the correct annotations.
+
+=== How to quickstart Hibernate (5.x)
+
+After having annotated your classes, you still need to bootstrap Hibernate itself. Hibernate's entry point for pretty much everything is the so-called _SessionFactory_, which you need to configure.
+
+It understands your mapping annotations and allows you to open _Sessions_. A session is basically a database connection (or more specifically a wrapper around your good, old JDBC connection), with additional goodies on top. You will use these sessions to execute SQL / HQL / Criteria queries.
+
+But first, some bootstrapping code:
+
+In newer Hibernate versions (>5.x), this code looks a bit ugly and libraries like Spring will take care of this bootstrapping code for you. But, if you want to get started with plain Hibernate, this is what you will need to do.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+
+public static void main(String[] args) {
+    // Hibernate specific configuration class
+    StandardServiceRegistryBuilder standardRegistry
+        = new StandardServiceRegistryBuilder()
+            .configure()
+            .build();
+
+    // Here we tell Hibernate that we annotated our User class
+    MetadataSources sources = new MetadataSources( standardRegistry );
+    sources.addAnnotatedClass( User.class );
+    Metadata metadata = metadataSources.buildMetadata();
+
+    // This is what we want, a SessionFactory!
+    SessionFactory sessionFactory = metadata.buildSessionFactory();
+}
+
+----
+
+(check out this https://www.baeldung.com/hibernate-5-bootstrapping-api[full example] for more copy & paste code)
+
+=== How basic persistence works with Hibernate: An example
+
+Now that you have the mapping set-up and constructed a SessionFactory, the only thing left to do is to get a session (read: database connection) from your SessionFactory and then, for example, save the user to the database.
+
+In Hibernate/JPA terms this is called "persistence", because you persist Java objects to your database tables. In the end, however, it is a very fancy way of saying: Save that Java object to the database for me, i.e. generate some insert SQL statements.
+
+Yes, that is right, you do not need to write the SQL yourself anymore. Hibernate will do that for you.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+Session session = sessionFactory.openSession();
+User user = new User();
+user.setFirstName("Hans");
+user.setLastName("Dampf");
+// this line will generate and execute the "insert into users" sql for you!
+session.save( user );
+----
+
+Compared with plain JDBC, there is no more messing around with PreparedStatements and parameters, Hibernate will make sure to create the right SQL for you (as long as your mapping annotations are right!).
+
+Let's have a look at what simple select, update and delete SQL statements would look like.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+
+// Hibernate generates: "select from users where id = 1"
+User user = session.get( User.class, 1 );
+
+// Hibernate generates: "update users set...where id=1"
+session.update(user);
+
+// Hibernate generates: "delete from useres where id=1"
+session.delete(user);
+----
+
+=== How to use Hibernate's Query Language (HQL)
+
+So far, we have only looked at basic persistence, like saving or deleting a User object. But there are of course times, when you need more control and need to write more complex SQL statements. For that, Hibernate offers its own query language, the so called HQL (Hibernate Query Language).
+
+HQL looks similar to SQL,but is focused on your Java objects and actually independent of the underlying SQL database. That means, in theory, the same HQL statements work for all databases (MySQL, Oracle, Postgres etc.), with the drawback that you lose access to all database specific features.
+
+Now what does "HQL is focused on Java" objects mean? Let's have a look at an example:
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+
+List<User> users = session.createQuery("select from User u where u.firstName = 'hans'", User.class).list();
+
+session.createQuery("update User u set u.lastName = :newName where u.lastName = :oldName")
+            .executeUpdate();
+----
+
+Both queries look very much like their SQL equivalents, but note that you are not accessing SQL tables or columns (first_name) in these queries.
+
+Instead, you are accessing properties (u.firstName) of your mapped User.java class! Hibernate will then make sure to convert these
+HQL statements to proper, database specific SQL statements. And in the case of a select automatically convert the returned rows as User objects.
+
+For detailed information on all HQL capabilities, check out the https://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#hql[HQL section] in the Hibernate documentation.
+
+=== How to use Hibernate's Criteria API
+
+When writing HQL statements, you are essentially still writing or concatenating plain strings (though there is tooling support, from IDEs like IntelliJ). Making your HQL/SQL statements dynamic (think: different where clauses depending on user input) is the interesting part.
+
+For that, Hibernate offers another query language, through its https://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#criteria[Criteria API]. There are essentially two versions of the Criteria API (1 and 2), which exist in parallel. Version 1 is deprecated and will be removed sometime in the Hibernate 6.x release line, but it is _much_ easier to use than version 2.
+
+Writing criteria (v2) queries in Hibernate has a steeper learning curve and it needs some more project setup. You need to setup an annotation processing plugin to generate a "Static Metamodel" of your annotated classes (think: the User from above). And then write some seriously complex queries with generated classes.
+
+Let's have a look at our HQL select query from above, and how you would convert it to criteria query.
+
+[[criteria-2.0]]
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+CriteriaQuery<User> criteria = builder.createQuery( User.class );
+Root<User> root = criteria.from( User.class );
+criteria.select( root );
+criteria.where( builder.equal( root.get( User_.firstName ), "hans" ) );
+List<User> users = entityManager.createQuery( criteria ).getResultList();
+----
+
+As you can see, you basically trade in readability and simplicity for type-safety and flexibility - e.g. feel free to sprinkle in if-elses to construct dynamic where clauses on the fly.
+
+But keep in mind, that for our basic example, you now have six lines of code: For a simple "select * from users where firstName = ?".
+
+=== What are disadvantages of Hibernate?
+
+Hibernate doesn't just offer simple mapping and querying features. Real-Life mappings and queries will obviously be much more complex than the ones you found above. In addition, Hibernate offers a ton of other _convenience_ features, like
+cascading, lazy loading, caching and much more. It truly is a complex piece of software, that you cannot fully grasp by just copy-and-pasting some online tutorial.
+
+This somewhat unexpectedly leads to two major issues.
+
+1. A fair amount of developers, sooner or later, claim that "Hibernate is doing random magic, that nobody understands" or a variant thereof. Because they lack the background knowledge of what Hibernate is doing.
+
+2. Some developers think that you do not need to understand SQL anymore, when using Hibernate. The reality is, the more complex your software gets, the _more_ SQL skills you will need, to verify the SQL statements that Hibernate generates and optimize them.
+
+To combat these two issues, you only have one choice: To use Hibernate efficiently, you need (to get) good knowledge of Hibernate *and* SQL.
+
+[[hibernate-tutorials]]
+=== What are good tutorials or books on Hibernate?
+
+A great book is https://www.manning.com/books/java-persistence-with-hibernate-second-edition[Java Persistence with Hibernate]. It has 608 pages, which already shows the complexity of it all, but your Hibernate skills will benefit greatly from reading it.
+
+If you want more advanced information on Hibernate, make sure to check out https://vladmihalcea.com/[Vlad Mihalcea's] or https://thoughts-on-java.org/[Thorben Janssen's] sites. Both are experts on Hibernate and regularly publish awesome Hibernate content.
+
+If you like to watch video courses, you can also check out the https://www.marcobehler.com/courses/2-hibernate-jpa-getting-started?utm_campaign=database_guide&utm_medium=database_guide&utm_source=database_guide[Hibernate screencasts] on this site. They are not the brand-newest anymore, but give you a super-fast quickstart into the Hibernate universe.
+
+=== What is the Java Persistence API (JPA)?
+
+So far, we only talked about plain Hibernate, but what about JPA? How does it compare to a library like Hibernate?
+
+JPA is merely a specification, not an implementation or library So, JPA defines a standard what features a library must support to be JPA compliant. And there's a couple of libraries, like Hibernate, EclipseLink or TopLink that _all_ implement the JPA specification.
+
+In simpler words: If your library supports (e.g.) saving objects to the database in a certain way, supports mapping and querying capabilities (like the criteria API etc.) and much more, then you can call it fully https://download.oracle.com/otn-pub/jcp/persistence-2_1-fr-eval-spec/JavaPersistence.pdf?AuthParam=1578473058_9b3db74ec95ca7140809a2cd1c7e2609[JPA compliant.]
+
+So, instead of writing Hibernate specific code, or EclipseLink specific code, you write JPA specific code. And then it is just a matter of adding some libraries (Hibernate) and configuration file to your JPA project, and you can access your database. In practice, that means JPA is another abstraction _on top_ of Hibernate.
+
+=== What are current JPA versions?
+
+- JPA 1.0 - approved in 2006
+- JPA 2.0 - approved in 2009
+- JPA 2.1 - approved in 2013
+- JPA 2.2 - approved in 2017
+
+There's multiple blogs that sum up the changes in those specifications for you, but https://vladmihalcea.com/[Vlad Mihalcea] and https://thoughts-on-java.org/category/jpa/[Thorben Janssen] do it best.
+
+=== What is the actual difference then between Hibernate and JPA?
+
+In theory, JPA allows you to disregard what persistence provider library (Hibernate, EclipseLink etc) you are using in your project.
+
+In practice, as Hibernate is by far the most popular JPA implementation, features in JPA are often "a heavily-inspired-subset" of Hibernate features. For example: JPQL is basically HQL with fewer features. And while a valid JPQL query is always a valid HQL query, this does not work the other way around.
+
+So, as the JPA specification process itself takes time and the output is "just" a common denominator of existing libraries, the features it offers are only a _subset_ of e.g. all the features that Hibernate offers. Otherwise Hibernate and EclipseLink and TopLink would be exactly the same.
+
+=== Should I use JPA or Hibernate?
+
+In real-life projects, you essentially have two choices:
+
+* You either use JPA as much as possible, sprinkled in with Hibernate specific features, where the JPA specification is lacking behind.
+* Or use plain Hibernate all the way (my personal, preferred choice).
+
+Both ways are fine *IF* you know your SQL.
+
+=== How basic persistence works with JPA
+
+In JPA, the entry point to all database code is the _EntityManagerFactory_ , as well as the EntityManager.
+
+Let's have a look at the example from above, where we saved Users with the JDBC and Hibernate API. Only this time, we save the users with the JPA API.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+EntityManagerFactory factory = Persistence.createEntityManagerFactory( "org.hibernate.tutorial.jpa" );
+
+EntityManager entityManager = factory.createEntityManager();
+entityManager.getTransaction().begin();
+entityManager.persist( new User( "John Wayne") );
+entityManager.persist( new User( "John Snow" ) );
+entityManager.getTransaction().commit();
+entityManager.close();
+----
+
+Apart from different namings (persist vs save, EntityManager vs Session), this reads _exactly_ like the plain Hibernate version.
+
+Hence, if you look at Hibernate's source code, you'll find this:
+
+[source,java,role=tooth]
+----
+package org.hibernate;
+
+public interface Session extends SharedSessionContract, EntityManager, HibernateEntityManager, AutoCloseable {
+  // methods
+}
+
+// and
+
+public interface SessionFactory extends EntityManagerFactory, HibernateEntityManagerFactory, Referenceable, Serializable, java.io.Closeable {
+    // methods
+}
+
+----
+
+To sum things up:
+
+- A Hibernate SessionFactory _IS_ a JPA EntityManagerFactory
+- A Hibernate Session _IS_ a JPA EntityManager
+
+Simple as.
+
+=== How to use JPA's query language: JPQL
+
+As already mentioned before, JPA comes with its own query language, the JPQL. It is essentially a heavily-inspired-subset of Hibernate's HQL, with JPQL queries always being valid HQL queries - but not the other way around.
+
+Hence, both versions of the same query will literally look the same:
+
+[source,java,role=tooth]
+----
+// HQL
+int updatedEntities = session.createQuery(
+	"update Person " +
+	"set name = :newName " +
+	"where name = :oldName" )
+.setParameter( "oldName", oldName )
+.setParameter( "newName", newName )
+.executeUpdate();
+
+// JPQL
+int updatedEntities = entityManager.createQuery(
+	"update Person p " +
+	"set p.name = :newName " +
+	"where p.name = :oldName" )
+.setParameter( "oldName", oldName )
+.setParameter( "newName", newName )
+.executeUpdate();
+----
+
+
+=== How to use JPA's Criteria API
+
+In comparison to HQL vs JPQL, JPA's Criteria API is essentially completely different from Hibernate's own Criteria API. We already covered the criteria API in the <<criteria-2.0,Hibernate Criteria >> section.
+
+
+=== What other JPA implementations are there?
+
+There are more JPA implementations out there, than just Hibernate. Two primarily come to mind: http://www.eclipse.org/eclipselink/[EclipseLink] (see https://thoughts-on-java.org/difference-jpa-hibernate-eclipselink/[Hibernate vs Eclipselink]) and the (older) http://www.oracle.com/technetwork/middleware/toplink/overview/index.html[TopLink].
+
+They lack behind in market-share compared to Hibernate, but you'll also find projects using them in corporate settings. There are also other projects like  https://github.com/BatooOrg/BatooJPA[BatooJPA], but you will find in most cases that these libraries are abandoned and not maintained anymore, because it is quite some effort to maintain a fully JPA compliant library.
+
+You most certainly need an active community to support further development of your library and Hibernate probably has the most active community as of 2020.
+
+
+[[querydsl]]
+=== QueryDSL
+
+How does a library like http://www.querydsl.com/[QueryDSL] fit into the JPA section of this guide? Up until now, we constructed either HQL/JPQL queries by hand (read: string concatenation), or through the rather complex Criteria (2.0) API.
+
+QueryDSL tries to give you the best of both worlds. Easier construction of queries than with the Criteria API, and more type-safety and less fumbling around than with plain strings.
+
+It should be noted, that QueryDSL was unmaintained for a while, but starting 2020, has picked up steam again. And that it does not only support JPQ, but also NoSQL databases like MongoDB or Lucene.
+
+Let's look at some example QueryDSL code, which runs a "select * from users where first_name = :name" SQL statement.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+QUser user = QUser.user;
+JPAQuery<?> query = new JPAQuery<Void>(entityManager);
+List<User> users = query.select(user)
+  .from(user)
+  .where(user.firstName.eq("Hans"))
+  .fetch();
+----
+
+Where does the QUser class come from? QueryDSL will automatically create that for you from your JPA/Hibernate-annotated User class, during compile time - with the help of an appropriate annotation processing compiler plugin.
+
+You can then use these generated classes to execute type-safe queries against the database. Don't they read much nicer than the JPA Criteria 2.0 equivalent?
+
+=== ORM frameworks in Java: A Summary
+
+ORM frameworks are mature and complex pieces of software. The major caveat is to think one does not need to understand SQL anymore, when you are working with any of the mentioned JPA implementation.
+
+It is true, ORMs offer you a fast start when trying to map basic classes to database tables. But coupled with a lack of basic knowledge about how they work, you will run into _major_ performance and maintenance challenges later in your project.
+
+*##Main Takeaway##*
+
+Make sure you get a good foundation on how e.g. <<hibernate-tutorials, Hibernate>> works *AND* how SQL and your database works. Then you are going to be on the right way.
+
+== Java SQL Libraries: A lightweight approach
+
+All the following libraries have more of a lightweight, database-first approach, as compared to the ORM's Java first approach.
+
+They work well if you have an existing (legacy) database, or even if you start a new project from scratch, where you design and write the database schema _before_ writing the corresponding Java classes.
+
+=== jOOQ
+
+https://www.jooq.org[jOOQ] is a popular library from Lukas Eder, and it is very well maintained. In case you are interested, he also runs very informative https://blog.jooq.org/[blog] on everything centering around SQL, databases and Java.
+
+Essentially working with jOOQ boils down to the following:
+
+1. You use jOOQ’s code generator to connect to your database and generate Java classes that model your database tables and columns.
+
+2. Instead of writing SQL String statements with plain JDBC, you will use those generated Java classes to write your SQL queries.
+
+3. jOOQ will conveniently turn these Java classes and queries into real SQL, execute them against the database and map the results back to Java code.
+
+So, imagine you setup jOOQ's code generator and let it run against the <<example-table,Users>> table that was introduced at the beginning of this guide. jOOQ will generate its own USERS table class, which e.g. allows you to execute the following, type-safe query against the database:
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+// "select u.first_name, u.last_name, s.id from USERS u inner join SUBSCRIPTIONS s
+// on u.id = s.user_id where u.first_name = :name"
+Result<Record3<String, String, String>> result =
+create.select(USERS.FIRST_NAME, USERS.LAST_NAME, SUBSCRIPTIONS.ID)
+      .from(USERS)
+      .join(SUBSCRIPTIONS)
+      .on(USERS.SUBSCRIPTION_ID.eq(SUBSCRIPTIONS.ID))
+      .where(USERS.FIRST_NAME.eq("Hans"))
+      .fetch();
+----
+
+jOOQ not only helps you build and execute SQL statements against your database schema, it also helps you with CRUD statements, mapping between Java POJO's and database records.
+
+It also will help you access all of your database's (vendor specific) features (think window functions, pivots, flashback queries, OLAP, stored procedures, vendor-specific functions etc.)
+
+You'll find a more detailed introduction in this https://www.marcobehler.com/guides/jooq[short jOOQ guide].
+
+mb_ad::jooq_course[]
+
+=== MyBatis
+
+http://www.mybatis.org/mybatis-3/getting-started.html[MyBatis] is another popular and actively maintained database-first choice. (In case you are wondering, MyBatis was forked from the similarly named IBATIS 3.0, which is now in Apache's Attic).
+
+MyBatis centers around the concept of a SQLSessionFactory (not to be confused with Hibernate's SessionFactory). Once you created a SessionFactory you can then execute SQL statements against your database. Those SQL statements either live in XML files, or you annotate interfaces with it.
+
+Let's see what the annotation example looks like:
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+package org.mybatis.example;
+public interface UserMapper {
+  @Select("SELECT * FROM users WHERE id = #{id}")
+  User selectUser(int id);
+}
+----
+
+link:#[Toggle Corresponding XML Configuration,role="solution-link"]
+[[solution2]]
+[source,xml,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.example.UserMapper">
+  <select id="selectUser" resultType="User">
+    select * from users where id = #{id}
+  </select>
+</mapper>
+----
+
+That interface then allows you to write code like the following:
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+UserMapper mapper = session.getMapper(UserMapper.class);
+User user = mapper.selectUser(1);
+----
+
+MyBatis also has mapping functionalities built-in, i.e. it can convert from a table to a User object. But only in simple cases, where e.g. the column names match or similar. Otherwise you will have to specify the mappings yourself, in one of the XML configuration files.
+
+Additionally, MyBatis has a pretty strong focus on its http://www.mybatis.org/mybatis-3/dynamic-sql.html[Dynamic SQL capabilties], which is basically an XML-based way of creating complex, dynamic SQL strings (think if-else-when-otherwise inside your SQL statements).
+
+[[jdbi]]
+=== Jdbi
+
+http://jdbi.org/[Jdbi] is small library on top of JDBC, that makes database access more convenient and not as rough to work with as with plain JDBC. It is one of the more low-level SQL frameworks.
+
+Its API comes in two flavors, which will give you a rough idea of how to work with it.
+
+First, the _Fluent API_:
+
+
+[source,java,role=tooth]
+.(Fluent API Parental Advice: Don't just blindly copy this code)
+----
+Jdbi jdbi = Jdbi.create("jdbc:h2:mem:test"); // (H2 in-memory database)
+
+List<User> users = jdbi.withHandle(handle -> {
+    handle.execute("CREATE TABLE user (id INTEGER PRIMARY KEY, name VARCHAR)");
+
+    // Named parameters from bean properties
+    handle.createUpdate("INSERT INTO user(id, name) VALUES (:id, :name)")
+            .bindBean(new User(3, "David"))
+            .execute();
+
+    // Easy mapping to any type
+    return handle.createQuery("SELECT * FROM user ORDER BY name")
+            .mapToBean(User.class)
+            .list();
+});
+----
+
+Second, the _declarative API_, which you can see link:#[in action here,role="solution-link"].
+[[solution8]]
+[source,java,role=tooth]
+.(Declarative API Parental Advice: Don't just blindly copy this code)
+----
+// Define your own declarative interface
+public interface UserDao {
+    @SqlUpdate("CREATE TABLE user (id INTEGER PRIMARY KEY, name VARCHAR)")
+    void createTable();
+
+    @SqlUpdate("INSERT INTO user(id, name) VALUES (:id, :name)")
+    void insertBean(@BindBean User user);
+
+    @SqlQuery("SELECT * FROM user ORDER BY name")
+    @RegisterBeanMapper(User.class)
+    List<User> listUsers();
+}
+
+public class MyApp {
+    public static void main(String[] args) {
+        Jdbi jdbi = Jdbi.create("jdbc:h2:mem:test");
+        jdbi.installPlugin(new SqlObjectPlugin());
+
+        List<User> userNames = jdbi.withExtension(UserDao.class, dao -> {
+            dao.createTable();
+            dao.insertBean(new User(3, "David"));
+            return dao.listUsers();
+        });
+    }
+}
+----
+
+[[fluent-jdbc]]
+=== fluent-jdbc
+
+In a similar vein to Jdbi, you'll find the https://github.com/zsoltherpai/fluent-jdbc[fluent-jdbc] library. Again, it is a convenience wrapper around plain JDBC. Check out its homepage for more examples.
+
+[source,java,role=tooth]
+.*(Declarative API Parental Advice: Don't just blindly copy this code)*
+----
+FluentJdbc fluentJdbc = new FluentJdbcBuilder()
+	.connectionProvider(dataSource)
+	.build();
+
+Query query = fluentJdbc.query();
+
+query
+	.update("UPDATE CUSTOMER SET NAME = ?, ADDRESS = ?")
+	.params("John Doe", "Dallas")
+	.run();
+
+List<Customer> customers = query.select("SELECT * FROM CUSTOMER WHERE NAME = ?")
+	.params("John Doe")
+	.listResult(customerMapper);
+----
+
+
+=== SimpleFlatMapper
+
+https://simpleflatmapper.org/[SimpleFlatMapper] is a bit weak on the documentation side, but it is a nifty little library that helps you map from, say JDBC's ResultSets or jOOQ's records to your POJOs. In fact, as it is 'just' a mapper, it integrates with most database frameworks mentioned in this guide, from Jdbc, jOOQ, queryDSL, JDBI to Spring Jdbc.
+
+Let's have a look at a JDBC integration example:
+
+[source,java,role=tooth]
+----
+// will map the resultset to User POJOs
+JdbcMapper<DbObject> userMapper =
+    JdbcMapperFactory
+        .newInstance()
+        .newMapper(User.class)
+
+
+try (PreparedStatement ps = con.prepareStatement("select * from USERS")) {
+    ResultSet rs = ps.executeQuery());
+    userMapper.forEach(rs, System.out::println);  //prints out all user pojos
+}
+----
+
+
+
+
+== Spring JDBC & Spring Data
+
+The https://www.marcobehler.com/guides/spring-framework[Spring universe] is actually an immense ecosystem, that's why you should not start straight away with Spring Data (which you are likely here for) but rather try and understand what Spring offers at its _core_.
+
+=== Spring JDBC Template
+
+One of the oldest helper classes in Spring (more specifically in the spring-jdbc dependency) is called the JDBCTemplate. It has been around since 2001 and should _not_ be confused with Spring Data JDBC.
+
+It is basically a convenience wrapper for <<plain-jdbc, JDBC connections>>, offering better ResultSet handling, connection handling, error handling as well as integration with https://www.marcobehler.com/guides/spring-transaction-management-transactional-in-depth[Spring's @Transactional framework].
+
+It comes in two flavors, the JdbcTemplate and its (wrapping) cousin, the NamedParameterJdbcTemplate. Let's have a look at some code examples, to find out how you would query your database with both.
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+
+// plain JDBC template with ? parameters
+
+JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+jdbcTemplate.execute("CREATE TABLE users(" +
+            "id SERIAL, first_name VARCHAR(255), last_name VARCHAR(255))"); <1>
+
+jdbcTemplate.batchUpdate("INSERT INTO users(first_name, last_name) VALUES (?,?)", Arrays.asList("john", "wayne"));  <2>
+
+jdbcTemplate.query(
+            "SELECT id, first_name, last_name FROM users WHERE first_name = ?", new Object[] { "Josh" },
+            (rs, rowNum) -> new User(rs.getLong("id"), rs.getString("first_name"), rs.getString("last_name"))
+    ).forEach(user -> log.info(user.toString()));   <3>
+
+// named JDBC template with :named parameters
+
+NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(datasource);
+
+SqlParameterSource namedParameters = new MapSqlParameterSource().addValue("id", 1);
+namedParameterJdbcTemplate.queryForObject(              <4>
+  "SELECT * FROM USERS WHERE ID = :id", namedParameters, String.class);
+
+----
+
+1. Here, we are executing a create table statement. Note that compared with plain JDBC, you do not have to catch SQLExceptions anymore, as Spring will convert them to Runtime Exceptions for you.
+
+2. Here, we are using JDBC's question mark parameter replacement.
+
+3. Here, we are using RowMappers, to convert the plain JDBC ResultSet to User POJOs from our project.
+
+4. NamedParameterJdbcTemplate lets you refer to parameters in your SQL string by name (for example :id), instead of by question mark (?).
+
+By looking at that code, you can see that JDBC Template is really just a nifty wrapper _around_ the JDBC API, which shows its strengths especially inside Spring projects (e.g. where you can use the @Transactional annotation).
+
+=== How Spring Transaction Management works: @Transactional
+
+Being able to declare database transactions with https://www.marcobehler.com/guides/spring-transaction-management-transactional-in-depth[the @Transactional annotation], is one of the major strengths of Spring.
+
+Not only does the annotation save you the hassle of opening, handling and closing database connections yourself, but Spring also nicely integrates with external libraries, such as Hibernate, jOOQ or any other JPA implementation - handling transactions _for_ them.
+
+Let's have another look at our JPA example from before, where you manually open and commit a transaction, through the EntityManager (remember: EntityManager is really just a Hibernate session, which is a JDBC connection on steroids).
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+EntityManagerFactory factory = Persistence.createEntityManagerFactory( "org.hibernate.tutorial.jpa" );
+
+EntityManager entityManager = factory.createEntityManager();
+entityManager.getTransaction().begin();
+entityManager.persist( new Event( "Our very first event!", new Date() ) );
+entityManager.persist( new Event( "A follow up event", new Date() ) );
+entityManager.getTransaction().commit();
+entityManager.close();
+----
+
+After integrating Spring and Hibernate/JPA, thus 'springifying' our EntityManager, the code becomes this:
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+@PersistenceContext
+private EntityManager entityManager;
+
+@Transactional
+public void doSomeBusinessLogic() {
+    entityManager.persist( new Event( "Our very first event!", new Date() ) );
+    entityManager.persist( new Event( "A follow up event", new Date() ) );
+}
+----
+
+Reads a lot nicer, doesn't it? There is obviously _much more_ to transaction handling than that, but only so much can be covered in this guide.
+
+If you are really keen on understanding transactions and actually getting your hands dirty, then you might want to have a look my e-book https://www.marcobehler.com/books/1-java-database-connections-transactions?utm_campaign=database_guide&utm_medium=database_guide&utm_source=database_guide[Java Database Connections & Transactions]. In it, you will find a ton of code examples and exercises to practice proper transaction handling.
+
+
+=== Spring Data JPA
+
+It's finally time to have a look at https://spring.io/projects/spring-data[Spring Data], which supposedly has the "mission to provide a Spring-based programming model for data access while retaining special traits". Wooha, what a generic Fortune 500 mission statement. But what does it really mean?
+
+Spring Data itself is just an umbrella name for a https://spring.io/projects/spring-data[variety of sub-projects]:
+
+1. Two popular ones, that we are going to cover in this guide: _Spring Data JDBC_ and _Spring Data JPA_.
+2. Many more, like Spring Data REST or Spring Data Redis, or even Spring Data LDAP. Check out the website for a complete list.
+
+==== What is Spring Data JDBC or Spring Data JPA, then?
+
+At their core, all Spring Data projects make it really simple _to write repositories or DAOs_ and SQL queries. (There is a bit more to it, but for the sake of this guide, let's keep it at that.)
+
+A quick refresher: A common pattern in server-side applications is, to have a repository/dao class for every domain object.
+
+If you had a User.java class, you would also have a UserRepository. That UserRepository would then have methods like findByEmail, findById etc. In short, it allows you to execute all SQL operations in regard to your Users table.
+
+[source,java,role=tooth]
+----
+User user = userRepository.findByEmail("my@email.com")
+----
+
+The interesting thing about Spring Data is, that it understands the JPA mapping annotations of your User class (remember @Entity, @Column, @Table etc.) and automatically generates repositories for you!
+
+This means, you get all the basic CRUD operations (save, delete, findBy) for free, without you having to write any extra code.
+
+==== How to write custom Spring Data JPA Repositories
+
+Let's have a look at some code examples. Assuming you would have the appropriate spring-data-{jdbc|jpa} .jars on your classpath, with a bit of configuration added, you could then write code like this:
+
+[source,java,role=tooth]
+.*(Parental Advice: Don't just blindly copy this code)*
+----
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.marcobehler.domain.User;
+
+public interface MyUserRepository extends JpaRepository<User, Long> {
+
+    // JpaRepository contains all of these methods, you do not have to write them yourself!
+
+	List<T> findAll();
+
+	List<T> findAll(Sort sort);
+
+	List<T> findAllById(Iterable<ID> ids);
+
+	<S extends T> List<S> saveAll(Iterable<S> entities);
+
+    // and many more...that you can execute without implementing, because Spring Data JPA will
+    // automatically generate an implementation for you - at runtime
+}
+----
+
+Your custom repository simply has to extend Spring Data's JPARepository (in case you are using JPA), and you will get the find*/save* (and more) methods for free, as they are part of the JPARepository interface - I just added them in the code above for clarity.
+
+==== How to write custom Spring Data JPA / JDBC queries
+
+Even better, you can then write custom JPA queries (or custom SQL queries) by convention. This is very similar to writing queries in https://rubyonrails.org/[Ruby on Rails], for example. How?
+
+[source,java,role=tooth]
+----
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.marcobehler.domain.User;
+
+public interface MyUserRepository extends JpaRepository<User, Long> {
+
+  List<User> findByEmailAddressAndLastname(String emailAddress, String lastname);
+}
+----
+
+Spring will, on application start-up, read in that method name, and translate it to the appropriate JPA query, whenever you execute that method. (resulting SQL: "select * from Users where email_address = :emailAddress and lastName = :lastName).
+
+It is a bit different with Spring Data JDBC (other than having to extend from a different interface, `_CrudRepository_`). Spring Data JDBC does not support writing these query methods. Instead, you'll have to write the query yourself, which will directly be executed as a JDBC query, not a JPA query.
+
+[source,java,role=tooth]
+----
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jdbc.repository.Query;
+import com.marcobehler.domain.User;
+
+public interface MyUserRepository extends CrudRepository<User, Long> {
+
+  @Query("select * from Users where email = :emailAddress and lastName = :lastName ")
+  List<User> findByEmailAddressAndLastname(@Param("emailAddress") String emailAddress, @Param("lastName") String lastname);
+}
+----
+
+You can do the same with Spring Data JPA as well (note the different import for the `_Query_` annotation and that we're not using named parameters here for a change). You still won't need an implementation of that interface.
+
+[source,java,role=tooth]
+----
+import org.springframework.data.jpa.repository.Query;
+
+public interface MyUserRepository extends JpaRepository<User, Long> {
+    @Query("select u from User u where u.emailAddress = ?1")
+    User findByEmailAddress(String emailAddress);
+}
+----
+
+==== Spring Data: A Summary
+
+This leads to a couple of conclusions:
+
+1. At its core, Spring Data is all about simple data access and thus repositories and queries. It understands javax.persistence mapping annotations and, from these annotations, generates DAOs for you.
+2. Spring Data JPA is a convenience library _on top_ of JPA/Hibernate. It is not that both libraries are different, but rather, they _integrate_. It lets you write super-simple JPA repositories, while being able to access the full feature-set of your ORM.
+3. Spring Data JDBC is a convenience library _on top_ of JDBC. It allows you to write JDBC-based repositories, _without_ needing a full blown ORM and its features (caching, lazy loading..). This means more control and less magic behind the scenes.
+
+And most of all, Spring Data integrates nicely with any other Spring project, though it is the obvious choice, whenever you are creating https://spring.io/projects/spring-boot[Spring Boot] projects.
+
+Again, this guide can only give you a quick overview of what Spring Data is, for more details, have a look at the https://spring.io/projects/spring-data[official documentation].
+
+== Video
+
+If you want to see Hibernate/JPA in action, have a look at the video below.
+
+mbyoutube::xHminZ9Dxm4[]
+
+== Deciding On The Right (™) Library
+
+By now, you might feel a bit overwhelmed. A ton of different libraries and then even more convenience options on top. But summing everything up, here's a couple of rough guidelines ( and as you might have guessed, there is not just the one and only right way) :
+
+* No matter what database library you ultimately decide on, make sure you have a solid understanding of SQL and databases (which Java developers _usually_ haven't).
+* Choose a library which has a vibrant community, good documentation and regular releases.
+* Learn your database libraries inside out, i.e. spend the time to read those 608 JPA pages.
+* Your project will be fine with either plain Hibernate or Hibernate wrapped in JPA.
+* It will also be fine with JooQ or any of the other mentioned database-first libraries.
+* You can also combine those libraries, e.g. a JPA implementation and JoOQ or plain JDBC - or add more convenience with libraries like QueryDSL.
+
+That's it for today. If you have any questions or if you found some spelling errors just post them to the comment section or mailto:marco@marcobehler.com[e-mail me].
+
+*##Thanks for reading##*
+
+== Acknowledgements
+
+A big thanks goes out to the following readers for their detailed feedback & corrections to this guide: https://www.reddit.com/user/parms[parms], https://www.reddit.com/user/lukaseder[lukaseder], https://twitter.com/StewAshton[Stew Ashton].

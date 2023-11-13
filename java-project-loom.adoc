@@ -1,0 +1,181 @@
+= Understanding Java's Project Loom
+Marco Behler
+2022-12-02
+:page-layout: layout-guides
+:linkattrs:
+:page-image: "/images/guides/undraw_horror_movie_3988.png"
+:page-description: You can use this guide to understand what Java's Project loom is all about and how its virtual threads (also called 'fibers') work under the hood.
+:page-published: true
+:page-tags: ["java", "project loom", "java fibers"]
+:page-commento_id: /guides/java-project-loom
+
+== Project Loom's Virtual Threads
+
+Trying to get up to speed with https://jdk.java.net/19[Java 19's Project Loom], I watched https://www.youtube.com/watch?v=EVZnk1ZyYeQ[Nicolai Parlog's talk] and read https://developer.okta.com/blog/2022/08/26/state-of-java-project-loom[several] https://medium.com/javarevisited/how-i-spun-up-5-million-virtual-threads-without-stalling-the-jvm-1188d806e6bd[blog] posts.
+
+All of them showed, how `_virtual threads_` (or `_fibers_`) can essentially scale to hundred-thousands or millions, whereas good, old, OS-backed Java threads only could scale to a couple of thousand (TBD: check OS-thread hypothesis in real-world scenarios).
+
+[source,java]
+----
+try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+    IntStream.range(0, 100_000).forEach(i -> executor.submit(() -> {  // <1>
+        Thread.sleep(Duration.ofSeconds(1));
+        System.out.println(i);
+        return i;
+    }));
+}
+----
+1. The example the blog posts used, letting 100.000 virtual threads sleep.
+
+Hundred-thousand sleeping virtual threads, fine. But could I now just easily execute 100.000 HTTP calls in parallel, with the help of virtual threads?
+
+[source,java]
+----
+// what's the difference?
+
+for (int i = 0; i < 1000000; i++) {
+    // good, old Java Threads
+    new Thread( () -> getURL("https://www.marcobehler.com"))
+        .start();
+}
+
+
+for (int i = 0; i < 1000000; i++) {
+    // Java 19 virtual threads to the rescue?
+    Thread.startVirtualThread(() -> getURL("https://www.marcobehler.com"))
+        .start();
+}
+----
+
+Let's find out.
+
+== Why are some Java calls blocking?
+
+Here is the code from our `_getURL_` method above, which opens a URL and returns its contents as a String.
+
+[source,java]
+----
+static String getURL(String url) {
+    try (InputStream in = new URL(url).openStream()) {
+        byte[] bytes = in.readAllBytes(); // ALERT, ALERT!
+        return new String(bytes);
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
+}
+----
+
+When you open up the JavaDoc of `_inputStream.readAllBytes()_` (or are lucky enough to remember your Java 101 class), it gets hammered into you that the call is blocking, i.e. won't return until all the bytes are read - your current thread is blocked until then.
+
+How come, I can now supposedly execute this call a million times in parallel, when running inside virtual threads, but not when running inside normal threads?
+
+Parts of the puzzle - topics you never knew you wanted to know more about after CS 101: Sockets & Syscalls.
+
+== Sockets
+
+When you want to make an HTTP call or rather send any sort of data to another server, you (or rather the library maintainer in a layer far, far away) will open up a _Socket_. And accessing sockets, by default, is blocking.
+
+[source,java]
+----
+// pseudo-code
+Socket s = new Socket();
+
+// blocking call, until data is available
+s.read();
+----
+
+However, operating systems also allow you to put sockets into `_non-blocking mode_`, which return immediately when there is no data available. And then it's your responsibility to check back again later, to find out if there is any new data to be read.
+
+[source,java]
+----
+// pseudo-code
+Socket s = new Socket();
+
+// pseudo code, consult a random Java NIO tutorial
+s.setBlockingFalse(true);   // ;D
+
+// yay, this call will return immediately, even if there is no data
+s.read();
+----
+
+== Syscalls
+
+When executing the `_getURL()_` call above, Java doesn't do the network call (open up a socket, read from it, etc) itself - it asks the underlying operating system to do the call.
+And here's the trick: Whenever you are using good-old Java threads, the JVM will use a blocking system call (TBD: show OS call stack.).
+
+When run inside a virtual thread, however, the JVM will use a _different_ system call to do the network request, which is non-blocking (e.g. use https://man7.org/linux/man-pages/man7/epoll.7.html[epoll] on Unix-based systems.), without you, as Java programmer, having to write non-blocking code yourself, e.g. some clunky Java NIO code.
+
+To cut a long story short (and ignoring a whole lot of details), the real difference between our `_getURL_` calls inside good, old threads, and virtual threads is, that one call opens up a million _blocking_ sockets, whereas the other call opens up a million _non-blocking_ sockets.
+
+Now, if you tried out this (non-sensical) example in the real world⟨™), you'd find that depending on your operating system, and if you are sending or receiving data, you'd run into operating system https://serverfault.com/questions/533611/how-do-high-traffic-sites-service-more-than-65535-tcp-connections[socket limits] - a reminder that using virtual threads is not an automagically scaling solution without you needing to know what you are doing (isn't that always true? :) )
+
+== Filesystem calls
+
+While we are at it. How would virtual threads behave when working with files?
+
+[source,java]
+----
+// Let's read in a million files in parallel!
+
+for (int i = 0; i < 1000000; i++) {
+    // Java 19 virtual threads to the rescue?
+    Thread.startVirtualThread(() -> readFile(someFile))
+                                        .start();
+}
+----
+
+With sockets it was easy, because you could just set them to `_non-blocking_`. But with file access, there is no async IO (well, except for https://en.wikipedia.org/wiki/Io_uring[io_uring] in new kernels).
+
+To cut a long story short, your file access call inside the virtual thread, will actually be delegated to a (....drum roll....) good-old operating system thread, to give you the illusion of non-blocking file access.
+
+
+== How do virtual threads work?
+
+Even though good,old Java threads and virtual threads share the name...`_Threads_`, the comparisons/online discussions feel a bit apple-to-oranges to me.
+
+It helped me think of virtual threads as tasks, that will eventually run on a real thread⟨™) (called `_carrier thread_`) AND that need the underlying native calls to do the heavy non-blocking lifting.
+
+In the case of IO-work (REST calls, database calls, queue, stream calls etc.) this will absolutely yield benefits, and at the same time illustrates why they won't help at all with CPU-intensive work (or make matters worse). So, don't get your hopes high, thinking about mining Bitcoins in hundred-thousand virtual threads.
+
+== Hype & Promises
+
+Almost https://www.linkedin.com/pulse/jdk-19-new-features-java-qdev-technolab/?trk=public_post[every] https://www.azul.com/blog/jdk-19-and-what-java-users-should-know-about-it/[blog] https://learningactors.com/jdk-19-the-new-features-in-java-19/[post] on the first page of Google surrounding JDK 19 copied the following text, describing virtual threads, verbatim.
+
+[source,console]
+A preview of virtual threads, which are lightweight threads that dramatically
+reduce the effort of writing, maintaining, and observing high-throughput,
+concurrent applications. Goals include enabling server applications written
+in the simple thread-per-request style to scale with near-optimal
+hardware utilization (...) enable troubleshooting, debugging, and
+profiling of virtual threads with existing JDK tools.
+
+While I do think virtual threads are a great feature, I also feel paragraphs like the above will lead to a fair amount of `_scale_` hype-train'ism. Web servers like https://www.eclipse.org/jetty/[Jetty] have long been using NIO connectors, where you have just a few threads able to keep open https://stackoverflow.com/a/25195392[hundreds of thousand or even a million connections.]
+
+The problem with real applications is them doing silly things, like calling databases, working with the file system, executing REST calls or talking to some sort of queue/stream.
+
+And yes, it's this type of I/O work where Project Loom will potentially shine. Loom gives you, the programmer or maybe even more "just" the (HTTP/database/queue) library & framework maintainers, the benefit of essentially non-blocking code, without having to resort back to the somewhat unintuitive async programming model (think of https://github.com/ReactiveX/RxJava[RxJava] / https://projectreactor.io/[Project Reactor] ) and all the consequences that entails (troubleshooting, debugging etc).
+
+However, forget about automagically scaling up to a million of private threads in real-life scenarios without knowing what you are doing. There is no free lunch.
+
+== What about the Thread.sleep example?
+
+We started this article with making threads sleep. So, how does that work?
+
+* When calling `_Thread.sleep()_` on a good, old Java, OS-backed thread, you will in turn, generate a native call that makes the thread sleepey-sleep for a given amount of time. Which is [line-through]#a non-sensical scenario anyway# quite costly for 100_000 threads.
+
+* In case of `_VirtualThread.sleep()_`, you will mark the virtual thread as sleeping and create a scheduled `_task_` on a good, old Java (OS-thread-based) `_ScheduledThreadPoolExecutor_`. That task will `_unpark_` / resume your virtual thread after the given [sleep-time]. Exercise for you: apples-to-oranges, again?
+
+== Fin
+
+Want to see more of these short technology deep dives? Leave a comment below.
+
+Meanwhile, check out https://www.marcobehler.com/guides/load-testing[Load Testing: An Unorthodox Guide] to find out, why you should worry about other things than scale.
+
+
+== Acknowledgements
+
+Thanks to https://twitter.com/tagir_valeev?[Tagir Valeev], Vsevolod Tolstopyatov. https://twitter.com/ae____[Andreas Eisele] for comments/corrections/discussions.
+
+
+
+

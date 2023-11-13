@@ -1,0 +1,301 @@
+= 13 must-know SSH Commands
+Marco Behler
+2022-10-28
+:page-layout: layout-guides
+:page-image: "/images/guides/undraw_security_re_a2rk.png"
+:page-description: A list of popular SSH commands for SSH connections, key generation & SSH agents that I'm using on a daily basis.
+:page-published: true
+:page-tags: ["ssh", "ssh agent", "ssh keygen", "ssh keys"]
+:page-commento_id: ssh-cheat-sheet
+
+== SSH-Keygen
+
+Nowadays, most platforms recommend you to generate keys with the ed25519 algorithm.
+
+[source,console]
+----
+ssh-keygen -t ed25519 -C "your@email.com"
+----
+
+If you prefer to go with RSA for compatibility reasons, use the following:
+
+[source,console]
+----
+ssh-keygen -t rsa -b 4096 -C "your@email.com"
+----
+
+The `_-C_` file simply puts a comment on your public key, like below, so you can e.g. easily make out which public key belongs to which email address, in a busy <<authorized_keys>> file.
+
+[source,text]
+----
+ssh-ed25519 KLAJSDLKSAJKLSJD90182980p1+++ your@email.com
+----
+
+*Note*: When generating SSH keys, make sure to protect your private key with a passphrase.
+
+== SSH with Keys
+
+To use a specific private key to connect to a server, use:
+
+[source,console]
+----
+ssh -i mykeyfile user@remotehost.com
+----
+
+Instead of specifying your key files manually with `_-i_`, use an <<ssh-agent>>.
+
+
+[[authorized_keys]]
+== Authorized_Keys
+
+Any remote host or service, like GitHub, that you want to use your SSH keys with, needs the `_public key_` of your SSH keypair.
+
+For servers, you simply need to append your public key to the file `_~/.ssh/authorized_keys_`.
+
+Use one of the following commands to do that:
+
+* `_cat ~/.ssh/id_rsa.pub | ssh USER@HOST "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"_` - https://askubuntu.com/a/262074
+* `_ssh-copy-id user@host_` - https://askubuntu.com/a/46427
+
+With services like GitHub, AWS etc. you would either use the UI to upload your public key, or, if available, command-line tools.
+
+== SCP
+
+To upload a file to a remote server:
+
+[source,console]
+----
+scp myfile.txt user@dest:/path
+----
+
+To recursively upload a local folder to a remote server:
+
+[source,console]
+----
+scp -rp sourcedirectory user@dest:/path
+----
+
+To download a file from a remote server:
+
+[source,console]
+----
+scp user@dest:/path/myfile.txt localpath
+----
+
+To recursively download a local folder to a remote server:
+
+[source,console]
+----
+scp -rp user@dest:/remotedir localpath
+----
+
+*Hint*: When doing things recursively via SCP, you might want to consider rsync, which also runs over SSH and has https://serverfault.com/a/264606[a couple of advantages over SCP].
+
+[line-through]#*Hint 2*: https://lwn.net/Articles/835962/[SCP has been deprecated] and you should consider switching to (the less user-friendly) SFTP.# https://news.ycombinator.com/item?id=32026913[The scp command uses the SFTP protocol since OpenSSH 9].
+
+[[ssh-agent]]
+== SSH-Agent
+
+With a running OpenSSH agent (automatically available out of the box on most Linux distributions and macOS) simply use:
+
+[source,console]
+----
+ssh-add privatekeyfile
+----
+
+To enable the OpenSSH agent on Windows, you'll need to https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement[execute the following commands]:
+
+[source,console]
+----
+# By default the ssh-agent service is disabled. Allow it to be manually started for the next step to work.
+# Make sure you're running as an Administrator.
+Get-Service ssh-agent | Set-Service -StartupType Automatic
+
+# Start the service
+Start-Service ssh-agent
+----
+
+*Note*: On Windows/Linux adding a key to your ssh-agent once, even with a password, will make sure that the key gets associated with your 'login'. Meaning: When you restart your PC and log in again, you'll have your identity automatically available again.
+
+To get the same behavior on macOS, you'll need to follow these instructions https://apple.stackexchange.com/a/250572[on StackExchange].
+
+
+== SSH Config
+
+Create a file  `_~/.ssh/config_` to manage your SSH hosts. Example:
+
+[source,text]
+----
+Host dev-meta*
+    User ec2-user
+    IdentityFile ~/.ssh/johnsnow.pem
+
+Host dev-meta-facebook
+    Hostname 192.168.178.1
+
+Host dev-meta-whatsapp
+    Hostname 192.168.178.2
+
+Host api.google.com
+    User googleUser
+    IdentityFile ~/.ssh/targaryen.key
+----
+
+*Note*:
+
+The `_Host_` directive can either
+
+* be a pattern (matching multiple follow-up `_Hosts_`)
+* refer to a made-up hostname (`_dev-facebook_`)
+* be a real hostname.
+
+If it's a made-up hostname, you'll need to specify an additional `_Hostname_` directive, otherwise, you can leave it out. And to add to the overall confusion, a `_Host_` line can actually contain multiple patterns.
+
+With the config file above, you could do a:
+
+[source,console]
+----
+ssh dev-meta-facebook
+----
+
+Which would effectively do a `_ssh -i ~/.ssh/johnsnow.pem  ec2-user@192.168.178.1_` for you.
+
+For a full overview of all available options, look at https://linuxize.com/post/using-the-ssh-config-file/[this article].
+
+== Git & Windows OpenSSH
+
+To make Git use Window's OpenSSH (and not the one it bundles), execute the following command:
+
+[source,console]
+----
+git config --global core.sshcommand "C:/Windows/System32/OpenSSH/ssh.exe"
+----
+
+== Exit Dead SSH Sessions
+
+To kill an unresponsive SSH session, hit, subsequently.
+
+[source,console]
+----
+Enter, ~, .
+----
+
+== Multiple GitHub Keypairs
+
+Trying to clone different private GitHub repositories, which have different SSH keypairs associated with them, doesn't work out of the box.
+
+Add this to your `_.ssh/config_` (this example assumes you have two GitHub keypairs, one for your work account and one for your personal account)
+
+[source,console]
+----
+Host github-work.com
+    Hostname github.com
+    IdentityFile ~/.ssh/id_work
+
+Host github-personal.com
+    Hostname github.com
+    IdentityFile ~/.ssh/id_personal
+----
+
+Then instead of cloning from `_github.com_`.
+
+[source,console]
+----
+git clone git@github.com:marcobehlerjetbrains/buildpipelines.git
+----
+
+Clone from either `_github-work.com_` or `_github-personal.com_`.
+
+[source,console]
+----
+git clone git@github-work.com:marcobehlerjetbrains/buildpipelines.git
+----
+
+== SSH Agent Forwarding
+
+Ever wanted to use your local SSH keys on a remote server, without copying your keys to that server? For example to `_git clone_` a private repository via SSH on a remote server?
+
+Agent forwarding to the rescue. Edit your local `_.ssh/config_` file like so:
+
+[source,console]
+----
+Host yourremoteserver.com
+    ForwardAgent yes
+----
+
+Then simply `_ssh_` to your server and execute an `_ssh-add -L`. The server's SSH agent should have all local SSH identities available and you can start cloning away!
+
+== SSH Agent Forwarding: Windows to WSL
+
+If you want to use the Windows OpenSSH agent with all its identities from WSL, do the following:
+
+1. Install `_socat_`, e.g. on your WSL Distribution: e.g. `_apt install socat_` for Ubuntu/Debian.
+2. Download a build of https://github.com/jstarks/npiperelay/releases/tag/v0.1.0[npiperelay] and put it somewhere on your (Windows) PATH.
+3. Put the following into your WSL `_~/.bash_profile_` or `_~/.bashrc_`.
+
+[source,bash]
+----
+# Configure ssh forwarding
+export SSH_AUTH_SOCK=$HOME/.ssh/agent.sock
+# need `ps -ww` to get non-truncated command for matching
+# use square brackets to generate a regex match for the process we want but that doesn't match the grep command running it!
+ALREADY_RUNNING=$(ps -auxww | grep -q "[n]piperelay.exe -ei -s //./pipe/openssh-ssh-agent"; echo $?)
+if [[ $ALREADY_RUNNING != "0" ]]; then
+    if [[ -S $SSH_AUTH_SOCK ]]; then
+        # not expecting the socket to exist as the forwarding command isn't running (http://www.tldp.org/LDP/abs/html/fto.html)
+        echo "removing previous socket..."
+        rm $SSH_AUTH_SOCK
+    fi
+    echo "Starting SSH-Agent relay..."
+    # setsid to force new session to keep running
+    # set socat to listen on $SSH_AUTH_SOCK and forward to npiperelay which then forwards to openssh-ssh-agent on windows
+    (setsid socat UNIX-LISTEN:$SSH_AUTH_SOCK,fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
+fi
+----
+
+Enjoy!
+
+Major thanks to Stuart Leeks, who I blatantly stole this code from - he did all the work @ https://stuartleeks.com/posts/wsl-ssh-key-forward-to-windows/.
+
+Check out his https://wsl.tips/book[WSL Book] for more such tricks!
+
+== SSH Tunnels
+
+Want to connect to a server that is hidden from the outside world, but accessible from a box you have SSH access to? Like an Amazon RDS database, which is only reachable from inside an AWS network?
+
+Use SSH forwarding
+
+[source,console]
+----
+ssh username@jumphost -N -f -L localport:targethost:targetport
+----
+
+The following command establishes an SSH tunnel between my `_local machine (@port 3307)_` and an `_RDS database (@port 3306)_`, via an `_EC2 jump host (18.11.11.11)_`.
+
+[source,console]
+----
+ssh ec2-user@18.11.11.11 -N -f -L 3307:marcotestme.12345.eu-central-1.rds.amazonaws.com:3306
+----
+
+You could now, for example, use the mysql client to connect to `_localhost:3307_`, which will be transparently tunneled to RDS for you.
+
+[source,console]
+----
+mysql -h localhost -P 3307
+----
+
+*Note*: A lot of tools/IDEs like https://www.jetbrains.com/idea/[IntelliJ IDEA], support opening up SSH tunnels by just clicking a checkbox in the UI.
+
+== Password Managers & SSH Agents
+
+Password Managers like https://developer.1password.com/docs/ssh/agent/[1Password] or https://lechnology.com/software/keeagent/[Keepass] can not only store your SSH keys, but they also come with their own `_ssh-agent_`, replacing your system's ssh-agent.
+
+This means, whenever you unlock your password manager on any machine that you have it installed on, you'll have all your SSH identities instantly available.
+
+Super useful!
+
+== Video
+
+If you prefer video for certain topics, you can see the guide in action on YouTube.
+
+mbyoutube::UnM4QAumuCQ[]

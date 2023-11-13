@@ -1,0 +1,1092 @@
+= What is Spring MVC: @Controllers & @RestControllers
+Marco Behler
+2020-12-09
+:page-layout: layout-guides
+:page-image: "/images/guides/undraw_web_developer_p3e5.png"
+:page-description: You can use this guide to understand what Spring MVC is, how its @Controllers, @RestControllers and DispatcherServlet work. Also, how it compares to Spring Boot.
+:page-published: true
+:page-tags: ["spring mvc", "spring boot mvc", "spring web framework", "spring", "java"]
+:page-commento_id: /guides/spring-mvc
+:page-course_url: https://www.marcobehler.com/courses/spring-professional?utm_campaign=spring_web_guide&utm_medium=spring_web_guide&utm_source=spring_web_guide
+:springversion: 5.x.
+:springbootversion: 2.x
+:sourcedir: https://raw.githubusercontent.com/marcobehler/spring-mvc-article/master/src/main/java/com/marcobehler/springmvcarticle
+:resourcesdir: https://raw.githubusercontent.com/marcobehler/spring-mvc-article/master/src/main/resources
+
+(*Editor’s note*: At ~5000 words, you probably don't want to try reading this on a mobile device. Bookmark it and come back later.)
+
+== Introduction
+
+=== What is Spring MVC?
+
+https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html[Spring MVC] is Spring's web framework. It lets you build web sites or RESTful services (think: JSON/XML) and is nicely integrated into the Spring ecosystem, e.g. it powers the @Controllers and @RestControllers of your Spring Boot applications.
+
+That doesn't really help, does it?
+
+*Luckily, there's also a long answer*: The remainder of this document.
+
+(If you are unsure of what Spring or Spring Boot is, you might want to read https://www.marcobehler.com/guides/spring-framework[What Is Spring Framework?], first.)
+
+
+== MVC Basics: HttpServlets
+
+When writing web applications in Java, with or without Spring (MVC/Boot), you are mostly talking about writing applications that return two different data formats:
+
+. *HTML* -> Your web app creates HTML pages that can be viewed in a browser.
+. *JSON/XML* -> Your web app provides RESTful services, that produce JSON or XML. Javascript-heavy websites or even other web services can then consume the data that these services provide.
+. (Yes, there's other data formats and use cases as well, but we'll ignore them for now.)
+
+How would you write such applications _without_ any framework? Just with plain Java?
+
+Answering this question is essential to _really_ understanding Spring MVC, so do not just skip ahead because you think it has nothing to do with Spring MVC.
+
+*Answer*
+
+At the lowest level, every Java web application consists of one or more `_HttpServlets_`. They generate your HTML, JSON, or XML.
+
+In fact, (almost) every single framework of the 1 million available Java web frameworks (https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html[Spring MVC], https://wicket.apache.org/[Wicket],  https://struts.apache.org/[Struts]) is built _on top_ of HttpServlets.
+
+
+=== How to write HTML pages with HttpServlets
+
+Let's have a look at a super simple HttpServlet that returns a very simple, static, HTML page.
+
+[source,java]
+----
+include::{sourcedir}/MyServletV1.java[]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV1.java[lines=8..8]
+----
+
+Your servlet _extends_ Java's HttpServlet class.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV1.java[lines=10..11]
+----
+
+To handle (any) GET request, you need to override the `_doGet()_` method from the superclass. For POST requests you would override `_doPost()_`. Similarly, for all other HTTP methods.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV1.java[lines=12..12]
+----
+
+Your servlet needs to make sure that the URL that comes in is a request that it knows how to handle. For now, the servlet _only_ handles "/", i.e.: it handles `_www.marcobehler.com_`, but _NOT_ `_www.marcobehler.com/hello_`.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV1.java[lines=13..13]
+----
+
+You need to set the proper *Content-Type* on the ServletResponse to let the browser know what content you are sending. In this case, it's HTML.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV1.java[lines=14..14]
+----
+
+Remember: web sites are just HTML strings! So you need to generate an HTML string, any way you want, and send that back with the ServletResponse. One way of doing that is with the response's writer.
+
+After writing your servlet, you would register it with a servlet container, like https://tomcat.apache.org/[Tomcat] or https://www.eclipse.org/jetty/[Jetty]. If you are using an embedded version of either servlet container, all the code needed to _run_ your servlet would look like this:
+
+[source,java]
+----
+include::{sourcedir}/TomcatApplicationLauncher.java[]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/TomcatApplicationLauncher.java[lines=11..13]
+----
+
+You configure a new Tomcat server which will start on port 8080.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/TomcatApplicationLauncher.java[lines=15..16]
+----
+
+This is how you register your Servlet with Tomcat. This is the first part, where you simply tell Tomcat about your servlet.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/TomcatApplicationLauncher.java[lines=18..18]
+----
+
+The second part is letting Tomcat know for what requests the servlet is responsible, i.e. the mapping. A mapping of `_/*_` means it's responsible for _any_ incoming request (`_/users_`, `_/register_`, `_/checkout_`).
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/TomcatApplicationLauncher.java[lines=20..20]
+----
+
+That's it. You run your `_main()_` method now, go to port 8080 in your favorite web browser (http://localhost:8080/), and you'll see a nice HTML page.
+
+So, essentially, as long as you keep extending your `_doGet()_` and `_doPost()_` methods, your whole web application could consist of just one servlet. Let's try that out.
+
+=== How to write JSON endpoints with HttpServlets
+
+Imagine that apart from your (pretty empty) HTML index page, you now also want to offer a REST API for your soon-to-be-developed front end. So your React or AngularJS front end would call a URL like this:
+
+`_/api/users/{userId}_`
+
+That endpoint should return data in JSON format for the user with the given userId. How could we enhance our `_MyServlet_` to do this, again, no frameworks allowed?
+
+
+[source,java]
+----
+include::{sourcedir}/MyServletV2.java[]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV2.java[lines=15..15]
+----
+
+We add another `_if_` to our doGet method, to handle the `_/api/users/_` calls.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV2.java[lines=17..17]
+----
+We do some `_extremely_` fragile URL parsing. The last part of the URL is the userID, e.g. `_5_` for `_/api/users/5_`. We just assume here that the user always passes in a valid int, which you would actually need to validate!
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV2.java[lines=19..19]
+----
+
+Writing JSON to the browser means setting the correct content-type.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/MyServletV2.java[lines=21..27]
+----
+
+Again, JSON is just text, so we can write that directly to the HTTPServletResponse. you would probably use a JSON library to convert our User Java object to this string, but for the sake of simplicity, I won't show that here.
+
+
+mb_ad::spring_course[]
+
+=== The problem with our One-Servlet-To-Rule-Them-All Approach
+
+While our servlet above works, there are quite a few problems on the horizon:
+
+. Your Servlet needs to do a lot of manual HTTP-specific plumbing, checking request URIs, fumbling with strings, etc. In other words: it needs to know `_WHAT_` the users want to do.
+. It then also needs to find the data for whatever you want to display. In other words: it needs to know the `_HOW_`. In our example above, that would be finding the user in a database, which we conveniently commented-out.
+. It then also needs to convert that data to JSON or to HTML and set the appropriate response types.
+
+Quite a lot of different responsibilities, eh? Wouldn't it be nicer if you didn't have to care about all that plumbing? No more request URI and parameter parsing, no more JSON conversions, no more servlet responses?
+
+That's `_exactly_` where https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html[Spring MVC] comes in.
+
+
+== What is Spring MVC's DispatcherServlet?
+
+What if I told you that Spring MVC is really just one servlet, like our uber-servlet above? (And yes, that's of course a bit of a lie)
+
+Meet the `_DispatcherServlet_`.
+
+Spring MVC's DispatcherServlet handles `_every_` incoming HTTP request (that's it is also called _front controller_). Now, what does _handle_ mean, exactly?
+
+=== A sample HTTP request flow
+
+Imagine a "register user workflow", where a user fills out a form and submits it to the server to get a nice little success HTML page back.
+
+In that case, your DispatcherServlet needs to do the following things:
+
+. It needs to have a look at the incoming HTTP method request URI and any request parameters. E.g.: `_POST /register?name=john&age33_`.
+. It needs to potentially convert the incoming data (request parameters/body) to nice little Java objects and forward them to a `_@Controller_` or `_@RestController_` class that _you_ wrote.
+. Your `_@Controller_` method saves a new user to the database, maybe sends out an email, etc. It would highly likely delegate that to another service class, but let's assume for now this happens inside the controller.
+. It needs to take whatever the output from your @Controller was and convert it back to `_HTML/JSON/XML_`.
+
+
+=== DispatcherServlet Overview
+
+The whole process looks like this, with a fair number of intermediary classes neglected because DispatcherServlet doesn't do all the work itself.
+
+[ditaa,dispatcher-servlet1d,png]
+----
+                                                    +--------------------------------+
+curl                                                |                                |
+--data "email=marco@marcobehler.com&name=marco"     |                                |
+https://marcobehler.com/register                    |                                |
+--------------------------------------------------->|    [--Spring Web MVC--]        |
+                                                    |                                |
+                                                    |                                |
+                                                    |  DispatcherServlet             |
+                                                    |                                |                    /---------------------------------------\
+                                                    |                                |  find and run      | @Controller                           |
+                                                    |  Handles every request         | ---------------->  | UserController                        |
+                                                    |                                | <----------------  |---------------------------------------|
+                                                    |                                |   ModelAndView     |                                       |
+                                                    |  mapping: /*                   |                    | @PostMapping("/register")             |
+                                                    |                                |                    | public ModelAndView register(UserDto) |
+<---------------- return converted HTML ------------|                                |                    \---------------------------------------/
+                                                    +--------------------------------+
+----
+
+What's a ModelAndView in the above graphic? How exactly does the DispatcherServlet convert the data?
+
+It is easiest to understand by looking at a real-life example. For example: How do you write HTML websites with Spring MVC? Let's find out in the next section.
+
+
+== How to write HTML with @Controllers
+
+Whenever you want to write HTML to a client like a browser with Spring MVC (and that includes Spring Boot), you'll want to write a @Controller class. Let's do that now.
+
+=== How to write a @Controller in Spring
+
+For our user registration workflow from above (`_POST /register?name=john&age33_`), you would write the following class.
+
+[source,java]
+----
+include::{sourcedir}/RegistrationController.java[]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/RegistrationController.java[lines=8..9]
+----
+
+A controller class in Spring is simply annotated with the `_@Controller_` annotation, it does not need to implement a specific interface or extend from another class.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/RegistrationController.java[lines=11..11]
+----
+
+This line tells our DispatcherServlet that whenever a POST request comes in for the path `_/register_`, _including_ any request parameters (e.g. ?username=), it should dispatch the request to this very controller method.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/RegistrationController.java[lines=12..12]
+----
+
+*Note* The naming of our method (`_registerUser_`) does not really matter, it could be called anything.
+
+We do however specify that each request should include two request parameters, which could either be part of the URL (`_?age=10&name=Joe_`) or be in the POST request body. Furthermore, only the `_name_` parameter is required (the `_age_` parameter is optional)
+
+And the `_age_` parameter, if the user supplies it, is automatically converted to an Integer (an exception is thrown if the supplied value is not a valid Integer)
+
+Last, but not least, Spring MVC automatically injects a `_model_` parameter into our controller method. That model is a simple map where you need to put all the data that you want to show in your final HTML page, but more on that in a second.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/RegistrationController.java[lines=13..19]
+----
+
+You do whatever you need to do with the incoming request data. Create a user, save it to a database, send out an email. This is _your_ business logic.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/RegistrationController.java[lines=21..21]
+----
+
+You add your user to the model, under key "user". Which means, you'll be able to reference it in your HTML template later on, like "${user.name}". More on that in a second.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/RegistrationController.java[lines=22..22]
+----
+Your method returns a simple string, with the value `_registration-success_`. This is not just any string, it is a reference to your view, i.e. the HTML template that you want Spring to render.
+
+=== What do views look like?
+
+Let's ignore for now how (or rather where) Spring MVC will try and find that view, i.e. your template; instead, let's see what your `_registration-success.html_` template should look like.
+
+[source,java]
+----
+include::{resourcesdir}/templates/registration-success.html[]
+----
+
+It's just a simple HTML page, which contains one _template-y_ line. It prints out the name of the user that has just registered.
+
+[source,java,indent=0,role=tooth]
+----
+include::{resourcesdir}/templates/registration-success.html[lines=9..9]
+----
+
+The question is, what is this `_th:text=_` syntax? Is that Spring-specific? Is it something else?
+
+And the answer is that Spring MVC doesn't really know anything about HTML templates. It needs a 3rd-party templating library to do all HTML templating work and doesn't necessarily care what library you choose.
+
+In the above case, you are looking at a https://www.thymeleaf.org/[Thymeleaf] template, which is a very popular choice when working on Spring MVC projects.
+
+=== Spring MVC & Templating Libraries
+
+There are several different templating libraries that integrate well with Spring MVC that you can choose from: https://www.thymeleaf.org/[Thymeleaf], https://velocity.apache.org/[Velocity], https://freemarker.apache.org/[Freemarker], https://mustache.github.io/[Mustache] and even https://en.wikipedia.org/wiki/JavaServer_Pages[JSP] (even though that is not a templating library).
+
+In fact, you _must_ explicitly choose a templating library, because if you do not have such a templating library added to your project and configured correctly, then your @Controller method would not render your HTML page - because it wouldn't know how to do it.
+
+It also means that you have to learn and understand the syntax of the particular templating library depending on the project you're, in because they're all _slightly_ different from each other. Fun, right?
+
+=== What is a ViewResolver?
+
+For a second, let's think about where Spring will actually try and find your HTML templates that your @Controller returns.
+
+The class that tries to _find_ your template is called a `_ViewResolver_`. So whenever a request comes into your Controller, Spring will have a look at the configured ViewResolvers and ask them, in order, to find a template with the given name. If you don't have any ViewResolvers configured, this won't work.
+
+Imagine you want to integrate with https://www.thymeleaf.org/[Thymeleaf]. Hence you would need a ThymeleafViewResolver.
+
+[source,java]
+----
+include::{sourcedir}/ThymeleafConfig.java[]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/ThymeleafConfig.java[lines=10..12]
+----
+
+In the end, a ThymeleafViewResolver simply implements Spring's `_ViewResolver_` interface. Given a template name (remember: `_registration-success_`), ViewResolvers can find the actual template.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/ThymeleafConfig.java[lines=14..14]
+----
+
+The ThymeleafViewResolver needs a couple of other Thymeleaf-specific classes to work properly. One of these classes is the `_SpringResourceTemplateResolver_`. It does the actual work of finding your template.
+
+NOTE: SpringResourceTemplateResolver is a Thymeleaf class
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/ThymeleafConfig.java[lines=15..16]
+----
+
+You are basically saying (with help of the https://www.marcobehler.com/guides/spring-framework#spring-resources[Spring Resources] syntax): "All my templates are on the classpath, in the `_/templates_` folder". And, by default, they all end with `_.html_`. This means:
+
+Whenever our @Controller returns a String like `_registration-success_`, the ThymeleafViewResolver will look for a template: `_classpath:/templates/registration-success.html_`.
+
+
+mb_ad::spring_course[]
+
+=== Side Note: Spring MVC, Spring Boot & Controllers
+
+You might be thinking: Marco, I've never had to configure such a ViewResolver _in my entire life_ working on Spring Boot projects. And that is correct. Because Spring Boot automatically _configures one for you_, whenever you add a dependency such as `_spring-boot-starter-thymeleaf_` to your project.
+
+It also configures the ViewResolver to have a look at your `_src/main/resources/template_` directory, by default.
+
+So, Spring Boot really just pre-configures Spring MVC for you. Keep that in mind.
+
+
+=== Summary: Model-View-Controller
+
+Having seen a complete @Controller & ViewResolver example makes it much easier to talk about Spring's **M**odel-**V**iew-**C**ontroller concept.
+
+* With a couple of annotations (@Controller, @PostMapping, @RequestParam) you can write a `_controller_` that takes care of receiving request data and processes it accordingly.
+* Your `_model_` contains all the data (and _just_ the data) that you want to render in your view. It is your job to fill that model map.
+* Your `_view_` is just an HTML template. It does not care about where you got the (model) data from. Or what the current HTTP request is. Or even whether you have an active HTTP Session or not.
+
+It is all about separation of concerns.
+
+While a bit annotation-heavy at first sight, our Spring @Controller class reads a lot better, with a lot less HTTP plumbing involved than our uber-servlet from the beginning.
+
+
+=== More on @Controllers
+
+We already saw a bit of the convenience that Spring MVC gives us when handling HTTP inputs.
+
+* You do not have to fumble with the requestURI, you can use an annotation instead.
+* You do not have to fumble with request parameter type conversions or if a parameter is optional or required, you can use an annotation instead.
+
+Let's have a look at the most common annotations that help you process _incoming_ HTTP requests.
+
+==== @GetMapping & @RequestMappping
+
+You already saw the `_@GetMapping_` annotation above. It is equal to the _`@RequestMapping_` annotation. Let's see how:
+
+[source,java,indent=0,role=tooth]
+----
+    @GetMapping("/books")
+    public void book() {
+            //
+    }
+
+    /* these two mappings are identical */
+
+    @RequestMapping(value = "/books", method = RequestMethod.GET)
+    public void book2() {
+
+    }
+----
+
+`_@GetMapping_`,  `_@[Post|Put|Delete|Patch]Mapping_`  is equivalent to `_@RequestMapping(method=XXX)_`. It is simply a newer way (Spring 4.3+) of specifying a mapping, so you'll find the @RequestMapping annotation used a lot in older, legacy Spring projects.
+
+
+==== @RequestParam
+
+For HTTP request parameters, be that in your URL (`_?key=value_`) or in a submitted form request body, can be read in via the `_@RequestParam_` annotation.
+
+You already saw that it does basic type conversion (e.g. from HTTP String parameter to an int) as well as checking for required or optional parameters.
+
+[source,java,indent=0,role=tooth]
+----
+@PostMapping("/users")   /* First Param is optional */
+public User createUser(@RequestParam(required = false) Integer age, @RequestParam String name) {
+   // does not matter
+}
+----
+
+If you forget to provide a required parameter with your request, you'll get a `_400 Bad Request_` response code and, if using Spring Boot, a default error object that looks like this:
+
+[source,json,indent=0,role=tooth]
+----
+{"timestamp":"2020-04-26T08:34:34.441+0000","status":400,"error":"Bad Request","message":"Required Integer parameter 'age' is not present","path":"/users"}
+----
+
+If you want even more convenience, you can let Spring directly convert all @RequestParams to an object, without any needed annotations. Simply specify your `_object_` as _`method parameter_`.
+
+You just need to make sure your class has corresponding getters/setters.
+
+[source,java,indent=0,role=tooth]
+----
+@PostMapping("/users")   /* Spring will convert this automatically if you have getters and setters */
+public User createUser(UserDto userDto) {
+    //
+}
+----
+
+==== @PathVariable
+
+Next to request parameters, another popular way of specifying variables would be directly in the request URI, as a `_@PathVariable_`. So for getting a user profile with `_userId=123_`, you would call the following URL:
+`_GET /users/123_`
+
+[source,java,indent=0,role=tooth]
+----
+@GetMapping("/users/{userId}")  // <1>
+public User getUser(@PathVariable String userId) {
+    // ...
+    return user;
+}
+----
+. You just need to make sure that your parameter value matches the one between the `_{}_` in your request mapping annotation.
+
+In addition, `_PathVariables_` can also be required or optional.
+
+[source,java,indent=0,role=tooth]
+----
+ @GetMapping("/users/{userId}")
+    public User getUser(@PathVariable(required = false) String userId) {
+        // ...
+        return user;
+    }
+----
+
+And PathVariables could, of course, be directly translated to a Java object (provided, the object has matching getters/setters).
+
+[source,java,indent=0,role=tooth]
+----
+@GetMapping("/users/{userId}")
+public User getUser(UserDto userDto) {
+    // ...
+    return user;
+}
+----
+
+
+=== Summary: @Controllers
+
+In short, when writing HTML pages with Spring MVC you'll have to do just a few things:
+
+. Write your @Controllers, sprinkled with a couple of annotations. Spring will take care to present you the request input (request params, path variables) in a convenient manner.
+. Execute whatever logic you need to fill your model. You can conveniently inject the model into any controller method.
+. Let your @Controller know which HTML template you want rendered and return the template's name as a string.
+. Whenever a request comes in, Spring will make sure to call your controller method, and take the resulting model and view, render that to an HTML string and return it back to the browser.
+. (Provided of course, you set up an appropriate templating library, which Spring Boot will automatically do for you, as long as you add the needed dependencies to your project.)
+
+That's it.
+
+
+
+== How to write XML/JSON with @RestControllers
+
+Things are a bit different when you are writing RESTFul services. Your client, be that a browser or another web service, will (usually) create JSON or XML requests. The client sends, say, a JSON request, you process it, and then the sender expects JSON back.
+
+So, a sender might send you this piece of JSON as part of the HTTP request body.
+
+[source,console]
+----
+POST http://localhost:8080/users
+
+###
+{"email": "angela@merkel.de"}
+----
+
+But on the Java side (in your Spring MVC program) you do not want to mess with raw JSON strings. Neither when receiving requests like above, nor when sending responses back to the client.
+
+Instead, you'd like to just have Java objects that get converted automatically, by Spring.
+
+[source,java]
+----
+public class UserDto {
+    private String email;
+    //...
+}
+----
+
+This also means that you do _not_ need all that model and view processing that you had to do when rendering HTML in your @Controllers. For RESTful services you don't have a templating library reading in an HTML template and filling it with model data to generate a JSON response for you.
+
+Instead, you want to go directly from HTTP Request -> Java object and from Java Object -> HTTP response.
+
+As you might have guessed, that's exactly what Spring MVC allows you to do, by writing `_@RestControllers_`.
+
+
+=== How to write @RestControllers
+
+The first thing you need to do to output XML/JSON is to write a `_@RestController_` instead of a @Controller. (Although @RestController _IS_ a @Controller, see <<difference-controller-restcontroller,FAQ>> for what the exact difference is).
+
+If we were to write a REST Controller for a bank, that returns a user's transaction list, it could look something like this:
+
+[source,java]
+----
+include::{sourcedir}/BankController.java[]
+----
+
+Let's break it down.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/BankController.java[lines=9..10]
+----
+
+You annotated the BankController class with the `_@RestController_` annotation, which signals Spring that you do not want to write HTML pages through the usual ModelAndView process.
+
+Instead, you want to write XML/JSON (or some other format) directly into the HTTP response body.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/BankController.java[lines=13..13]
+----
+
+Your controller does not return a String (view) anymore. Instead, it returns a `_List<Transaction>_`, that you want Spring to convert to an appropriate JSON or XML structure. You basically want your Transaction Java objects to become this (someone was hungry for fast food very early in the morning):
+
+[source,json]
+----
+[
+  {
+    "occurred": "28.04.2020 03:18",
+    "description": "McDonalds - Binging",
+    "id": 1,
+    "amount": 10
+  },
+  {
+    "occurred": "28.04.2020 06:18",
+    "description": "Burger King - Never enough",
+    "id": 2,
+    "amount": 15
+  }
+]
+----
+
+But how would Spring MVC know that your transaction list should get converted to JSON? Why not XML? Or YAML? How does your @RestController method know what the supposed response format should be?
+
+For that, Spring has the concept of `_Content Negotiation_`.
+
+=== How (Response) Content Negotiation works: Accept Header
+
+In short, content negotiation means that the _client_ needs to tell your server what response format it wants to get back from your @RestController.
+
+How? By specifying the `_Accept_` header with the HTTP request.
+
+[source,console]
+----
+GET http://localhost:8080/transactions/{userid}
+Accept: application/json
+----
+
+Spring MVC will have a look at that `_Accept_` header and know: The client wants JSON (application/json) back, so I need to convert my `_List<Transaction>_` to JSON. (Quick note: there are other ways to do https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-config-content-negotiation[content negotiation], but the Accept header is the default way.)
+
+Let's call this _response_ content negotiation, because it is about the data format of the HTTP response that you are sending back to your client.
+
+But content negotiation also works for incoming requests. Let's see how.
+
+
+=== How Request Content Negotiation works: Content-Type Header
+
+When building RESTful APIs, there's an extremely high chance that you also want your clients to be able to send in JSON, or XML. Let's pick up the example from the beginning of the chapter again, where you offer a REST endpoint to register new users:
+
+[source,console]
+----
+POST http://localhost:8080/users
+
+###
+{"email": "angela@merkel.de"}
+----
+
+How would Spring know that the request body above contains JSON and not XML or YAML?
+
+You might have guessed right, you'll need to add another header, this time it's the `_Content-Type_` header.
+
+[source,console]
+----
+POST ...
+
+Content-Type: application/json; charset=UTF-8
+
+###
+...
+----
+
+What would the corresponding @RestController method for that request look like?
+
+[source,java]
+----
+include::{sourcedir}/BookingController.java[]
+----
+
+Let's break it down.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/BookingController.java[lines=11..11]
+----
+
+Similar to @RequestParam or @Pathvariable, you'll need another annotation, called `_@RequestBody_`.
+
+@RequestBody in combination with the correct `_Content-Type_` will signal Spring that it needs to have a look at the HTTP request body and convert it to whatever Content-Type the user specified: JSON in our case.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/BookingController.java[lines=12..15]
+----
+
+Your method then doesn't have to care about the raw JSON string anymore, it can simply work with the TransactionDTO, save it to the database, convert it to a Transaction object, anything you want.
+
+That is the power of Spring MVC.
+
+mb_ad::spring_course[]
+
+
+=== How does Spring convert data formats?
+
+There's only one small problem: Spring knows about the Accept and Content-Type headers, but it does not know how to convert between Java Objects and JSON. Or XML. Or YAML.
+
+It needs an appropriate 3rd-party library to do the dirty work (also called `_marshalling/unmarshalling_` or `_serialization/deserialization_`.)
+
+And the classes that integrate between Spring MVC and these 3rd-party libaries are called `_HttpMessageConverters_`.
+
+
+=== What is a HttpMessageConverter?
+
+An HttpMessageConverter is an interface with four methods (note, I simplified the interface a bit for an easier explanation, as it looks a bit more advanced in real life).
+
+. *canRead(MediaType)* -> Can this converter read (JSON|XML|YAML|etc)? The MediaType passed in here is typically the value from the `_Content-Type_` request header.
+. *canWrite(MediaType)* -> Can this converter write (JSON|XML|YAML|etc)? The MediaType passed in here is typically the value from the `_Accept_` request header.
+. *read(Object, InputStream, MediaType)* -> Read my Java object from the (JSON|XML|YAML|etc.) InputStream
+. *write(Object, OutputStream, MediaType)* ->  Write my Java object to the OutputStream as (JSON|XML|YAML|etc.)
+
+In short, a MessageConverter needs to know what MediaTypes it supports (think: application/json) and then needs to implement two methods to do the actual reading/writing in that data format.
+
+
+=== Which HttpMessageConverters are there?
+
+Luckily, you don't need to write these message converters yourself. Spring MVC comes with a class that automatically registers a couple of default HTTPMessageConverters for you - if you have the appropriate 3rd-party libraries on the classpath.
+
+If you don't know about this, it'll sound like magic. In any case, have a look at Spring's `_AllEncompassingFormHttpMessageConverter_` (I love the name).
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/spring-projects/spring-framework/master/spring-web/src/main/java/org/springframework/http/converter/support/AllEncompassingFormHttpMessageConverter.java[lines=51..60]
+----
+
+Let's break this down.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/spring-projects/spring-framework/master/spring-web/src/main/java/org/springframework/http/converter/support/AllEncompassingFormHttpMessageConverter.java[lines=53..53]
+----
+
+Spring MVC checks if the class `_javax.xml.bind.Binder_` is present and if so, assumes you have added a needed library to your project to do https://javaee.github.io/jaxb-v2/[JAXB conversions].
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/spring-projects/spring-framework/master/spring-web/src/main/java/org/springframework/http/converter/support/AllEncompassingFormHttpMessageConverter.java[lines=54..55]
+----
+
+Spring MVC checks if two classes `_..jackson..ObjectMapper_` and `_..jackson..JsonGenerator_` are present and if so assumes that you have added https://github.com/FasterXML/jackson[Jackson] to your project in order to do the JSON conversions.
+
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/spring-projects/spring-framework/master/spring-web/src/main/java/org/springframework/http/converter/support/AllEncompassingFormHttpMessageConverter.java[lines=56..56]
+----
+
+Spring MVC checks if the class `_..jackson..XmlMapper_` is present and if so assumes that you have added https://github.com/FasterXML/jackson[Jackson's XML support] to your project in order to do the XML conversions.
+
+And so on. And a couple of lines later, Spring simply adds an HttpMessageConverter for each library it 'detected'.
+
+[source,java,indent=0,role=tooth]
+----
+include::https://raw.githubusercontent.com/spring-projects/spring-framework/master/spring-web/src/main/java/org/springframework/http/converter/support/AllEncompassingFormHttpMessageConverter.java[lines=71..80]
+----
+
+=== Side-Note: Spring MVC, Spring Boot & RestControllers
+
+When building Spring Boot projects, you'll automatically use Spring MVC under the hood. But Spring Boot also pulls in Jackson by default.
+
+_That_ is the reason why you can immediately write JSON endpoints with Spring Boot, because the correct HttpMessageConverts will be added automatically for you.
+
+
+=== Summary: @RestControllers
+
+Compared with the HTML flow, the JSON/XML flow is a bit simpler, as you bypass all that Model and View rendering.
+
+Instead, your @Controllers directly return Java objects, which Spring MVC will conveniently serialize to JSON/XML or any other format that the user requested with the help of HttpMessageConverters.
+
+You need to make sure of two things, however:
+
+. Have the appropriate 3rd party libraries on the classpath.
+. Make sure to send in the correct `_Accept_` or `_Content-Type_` headers with every request.
+
+
+
+
+== FAQ
+
+
+[[faq-webmvc]]
+=== What is the difference between Spring & Spring Web MVC?
+
+If you have read this guide, you should understand by now that Spring Web MVC _is part_ of Spring framework.
+
+On a very high-level it allows you to turn your Spring application into a web application with the help of a DispatcherServlet that routes to @Controller classes.
+
+These can be RestControllers (where you send XML or JSON to the client) or good old HTML Controllers where you generate HTML with frameworks like Thymeleaf, Velocity or Freemarker.
+
+=== What is the difference between Spring & Struts?
+
+The question should really be: What is the difference between Spring Web MVC & Struts?
+
+The short, historical answer is: Spring Web MVC started out as a competitor of Struts, which was, allegedly, perceived as poorly designed by Spring developers (see wikipedia).
+
+The modern answer is, that while https://struts.apache.org/[Struts 2] is certainly still being used in the odd legacy project, Spring Web MVC is _the basis_ for everything web-related in the Spring universe. From Spring Webflow to Spring Boot's RestControllers.
+
+=== Did you publish the source code for this article somewhere?
+
+You can find the working source code for most of this article in the following GitHub repository:
+https://github.com/marcobehler/spring-mvc-article
+
+Simply clone the project and run the `_SpringMvcArticleApplication_` class to start up the web application.
+
+=== What is the difference between Spring MVC and Spring Boot?
+
+In short: There is no _difference_, Spring Boot uses and builds _on top_ of Spring MVC.
+
+For a more thorough explanation, you'll need to read my https://www.marcobehler.com/guides/spring-framework[What is Spring Framework?] article first.
+
+=== What is the fastest way to create a new Spring MVC application?
+
+Unless you want to use Spring MVC without it (quite rare, nowadays), the quickest way will be to create a new Spring Boot project.
+
+. Go to https://start.spring.io/.
+. Make sure to select `_Spring Web_` as a dependency for your new project.
+
+This will let you build web/RESTful applications with Spring MVC.
+
+=== What kind of HTTP request input does Spring MVC understand?
+
+Spring MVC understands basically everything that HTTP offers - with the help of third-party libraries.
+
+That means you can throw JSON, XML, or HTTP (Multipart) Fileuploads request bodies at it, and Spring will conveniently convert that input to Java objects.
+
+=== What kind of HTTP responses can Spring MVC write?
+
+Spring MVC can write anything that you want into an HttpServletResponse - with the help of 3rd-party libraries.
+
+Be that HTML, JSON, XML or even WebSocket response bodies. Even better, it takes your Java objects and generates those response bodies for you.
+
+[[difference-controller-restcontroller]]
+=== What is the difference between a @Controller and @RestController
+
+. `_@Controllers_`, by default, return HTML to your users with the help of a templating library, unless you add the @ResponseBody annotation to specific methods, which let you return XML/JSON as well.
+. `_@RestController's_` source code shows that it actually _is_ a @Controller, with the added @ResponseBody annotation. Which is equivalent to writing @Controllers which have @ResponseBody annotated on _every single method_.
++
+[source,java]
+----
+@Controller
+@ResponseBody
+public @interface RestController {
+----
++
+. Therefore, @RestControllers, by default, return XML/JSON, instead of HTML.
+
+
+NOTE: XML and JSON are simply the most popular data formats you'll use in a Spring MVC application. Your @Controllers/@RestControllers could, however, return anything else, like YAML for example. You'll only need to make sure to have the right `_HttpMessageConverter_` registered in your ApplicationContext.
+
+
+=== Which templating library should I choose?
+
+Over the years I have personally worked with almost all templating libraries and while there is a certain push to use Thymeleaf in Spring projects, I have no strong preference. So, either go with https://www.thymeleaf.org/[Thymeleaf] (if you don't have experience with any other framework) or choose the one you are most comfortable with.
+
+=== Why does my @Controller output 404? All mappings are correct.
+
+A relatively common mistake is to have a `_@Controller_` returning objects that you want to get converted to JSON or XML, but you are missing the @ResponseBody annotation.
+
+Spring will return a rather meaningless `_404 Not Found_` exception in that case.
+
+[source,java]
+----
+include::{sourcedir}/_404WithMissingResponseBodyController.java[]
+----
+
+*Fix*: Add `_@ResponseBody_` or turn your `_@Controller_` into a `_@RestController_`.
+
+
+=== What happens if you define the same request mapping for two different methods?
+
+If the two methods have different HTTP methods, it won't be a problem.
+
+[source,java,indent=0,role=tooth]
+----
+
+/* this works */
+
+@PostMapping("/users")
+public void method1() {
+
+}
+
+@GetMapping("/users")
+publi void method(2) {
+
+}
+----
+
+If, however, you map the same HTTP methods to the same path, you will get a problem.
+
+[source,java,indent=0,role=tooth]
+----
+
+/* this won't work */
+
+@PostMapping("/users")
+public void method1() {
+
+}
+
+@PostMapping("/users")
+publi void method(2) {
+
+}
+----
+
+On application startup, this will lead to an `_IllegalStateException_`, hinting to your ambiguous mapping.
+
+
+[source,console]
+----
+Caused by: java.lang.IllegalStateException: Ambiguous mapping. Cannot map 'howToPassAndRetrieveRequestParametersController' method
+com.marcobehler.springmvcarticle.HowToPassAndRetrieveRequestParametersController#createUser(User)
+to {POST /users3}: There is already 'howToPassAndRetrieveRequestParametersController' bean method
+----
+
+
+=== Do I need to URL encode @RequestParams?
+
+Yes, because Spring _automatically_ URL decodes them. A common error:
+
+Imagine your application sends out confirmation emails whenever a new user signs up and a user signs up with a "+" sign in his email address, like marco+wantsnospam@marcobehler.com.
+
+[source,java,indent=0,role=tooth]
+----
+@GetMapping("/confirm")
+public void confirm(@RequestParam String email, @RequestParam String token){
+    // confirm user...
+}
+----
+
+If you forgot to properly URL encode the + sign in your confirmation mail and send the string as is to your @Controller, which value will the email @RequestParam contain?
+
+It will be "marco[space]wantsnospam@marcobehler.com", as Spring will replace the + with a space, which is proper https://tools.ietf.org/html/rfc3986[RFC3986] handling.
+
+*Fix*: Make sure that the URLs you feed to your application are properly encoded: marco%2Bwantsnospam@marcobehler.com, as Spring will decode them automatically.
+
+=== How to access the user's current HttpSession?
+
+In your Spring MVC @Controller or @RestController, you can simply specify the HttpSession as a method argument, and Spring will _automatically_ inject it (creating one if it doesn't yet exist)
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/HttpSessionController.java[lines=10..19]
+----
+
+You cannot do that with random @Components or @Services, but you are still able to @Autowire the HttpSession into them.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/HttpSessionController.java[lines=20..29]
+----
+
+
+=== How to access the HttpServletRequest?
+
+In your Spring MVC @Controller or @RestController, you can simply specify the HttpServletRequest as a method argument and Spring will _automatically_ inject it (creating one if it doesn't yet exist)
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/HttpServletRequestController.java[lines=10..21]
+----
+
+You cannot do that with random @Components or @Services, but you are still able to @Autowire the HttpServletRequest into them.
+
+[source,java,indent=0,role=tooth]
+----
+include::{sourcedir}/HttpServletRequestController.java[lines=23..32]
+----
+
+
+=== How to read HTTP Headers?
+
+There's a variety of ways to access the request headers, depending on whether you want just a single one or a map with all of them. In either case you need to annotate them with @RequestHeader.
+
+Whatever version you pick, try to be consistent with your choice.
+
+[source,java]
+----
+include::{sourcedir}/HttpHeaderController.java[]
+----
+
+=== How to read and write cookies?
+
+For reading cookies you can use the `_@CookieValue_` annotation in your controllers. You'll have to write cookies directly to the HttpServletResponse.
+
+[source,java]
+----
+include::{sourcedir}/CookieController.java[]
+----
+
+
+
+
+===  How to get the user's IP address?
+
+This is a trick question. There is a method, called `_httpServletRequest.getRemoteAddr()_`, which, however, only returns you the IP of the user `_or_` the last proxy that sent the request, which 99,99% of the case is your Nginx or Apache.
+
+Hence, you'll need to parse the `_X-Forwarded-For_` header for the correct IP address. But what happens if your application, in addition, runs behind a CDN, like CloudFront? Then your X-Forwarded-For would look like this:
+
+`_X-Forwarded-For: maybeSomeSpoofedIp, realIp, cloudFrontIp_`
+
+The problem is, you cannot read the header from left to right, as users could provide and therefore spoof their own X-Forwarded-For header. You always have to go from `_right_` to left, and `_exclude_` all known IP addresses. In the case of CloudFront, this means you'll need to know the CloudFront IP ranges and remove them from the header. Yup!
+
+This leads to quite elaborate IP-resolving code. Guess how many projects get that wrong!
+
+[source,java]
+----
+include::{sourcedir}/IpController.java[]
+----
+
+
+=== How can you handle file uploads in a Spring MVC application?
+
+Given that you have the proper HTML file upload form, which reads something like this:
+
+[source,html]
+----
+<form method="POST" enctype="multipart/form-data" action="/upload">
+    File to upload:<input type="file" name="file" />
+    <input type="submit" value="Upload" />
+</form>
+----
+
+You simply need a @Controller with a corresponding @PostMapping and a MultiPartFile parameter, which contains your upload data and convenient methods to store the file on your disk.
+
+[source,java]
+----
+include::{sourcedir}/FileUploadController.java[]
+----
+
+=== How to handle byte (xls, pdf, csv, jpg, zip file) downloads with Spring Controllers?
+
+There's a variety of ways to get this working, from writing directly to the HttpServletResponse or returning a byte[] as a result.
+
+However, the most Spring-y and flexible version is by returning `_ResponseEntity<Resource>_`s. Depending on where you stored the file, you would use a different resource.
+
+* On a disk -> FileSystemResource
+* On your project's classpath -> ClassPathResource
+* Stream it from "somewhere" -> InputStreamResource
+* Have it available as byte[] in memory -> ByteArrayResource
+
+All that's left to do then, is set the appropriate response HTTP headers (filename, content-type, etc).
+
+[source,java]
+----
+include::{sourcedir}/FileDownloadController.java[]
+----
+
+
+=== How can I handle exceptions from my @Controllers globally?
+
+There's literally a gazillion ways of handling exceptions with Spring MVC, if you don't want to handle them directly in your @Controller methods, but rather in one central place.
+
+Create a `_@ControllerAdvice_` or `_@RestControllerAdvice_` class, in combination with the @ResponseStatus and @ExceptionHandler annotations. A couple of notes:
+
+. You might guess the difference between these two by understanding the difference between @Controllers and @RestControllers.
+. @ResponseStatus lets you define the HTTP Status code that should be returned to the client after handling your exception.
+. @ExceptionHandler specifies the exception that should trigger your handler method.
+. Other than that, it's like writing a normal @Controller or @RestController.
+
+[source,java]
+----
+include::{sourcedir}/GlobalControllerExceptionHandler.java[]
+----
+
+
+=== How to return any status code (400, 404, etc) from your @Controllers?
+
+Throw a `_ResponseStatusException_`, with the appropriate status code and possibly a reason.
+
+An alternative would be returning a ResponseEntity object, but the exception is nicer in most cases.
+
+[source,java]
+----
+include::{sourcedir}/HttpStatusCodeController.java[]
+----
+
+=== What about concept XYZ of Spring MVC?
+
+The official Spring MVC's documentation literally contains hundreds of pages describing how the web framework works.
+
+So, in case you want to know more about Models, Views, ViewHandlers, InitBinders, RootContexts, Filters, Caching, etc., I invite you to check it out. It is simply not in the scope of this guide to cover everything.
+
+
+
+== Fin
+
+That was quite a ride. In the end, I hope that you have taken a couple of things away from this article:
+
+* Spring MVC is a good old MVC framework that lets you, rather easily, write HTML web sites or JSON/XML web services.
+* It integrates nicely with a lot of templating libraries and data conversion libraries, as well as with the rest of the Spring ecosystem, like Spring Boot.
+* It also offers extensive support for testing, something which I did not cover in this article. To get a deep dive into the testing topic, you can check out e.g. https://www.copecart.com/products/521411d4/p/marco001[this course] (Note: I'm affiliated with the author)
+* It mainly allows you to focus on writing your business logic, without having to worry too much about servlet plumbing code, HTTP request/response parsing, and data conversion.
+
+
+That's it for today. Thanks for reading.
+
+== Acknowledgments
+
+A big "thank you" goes out to https://www.linkedin.com/in/patomos/[Patricio "Pato" Moschcovich], who not only did the proofreading for this article but also provided invaluable feedback!
+
