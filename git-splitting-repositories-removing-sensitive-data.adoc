@@ -7,12 +7,14 @@ Marco Behler
 :page-tags: ["git", "git subtree", "git filter-repo"]
 :page-commento_id: git-splitting-repositories-removing-sensitive-data
 
-== How to split Git repositories & remove sensitive data
-This website, or rather its many parts, live in a monolithic GitHub repository. I wanted to split out the guides (like the one you are reading right now) into their own public https://github.com/marcobehler/marcobehler-guides[GitHub repository], but keep the rest private and somehow end up with a "unified" repository, where I directly "link" the public one, into the private one.
+
+This website, or rather its many parts, live in a monolithic GitHub repository. I wanted to split out the guides (like the one you are reading right now) into their own public https://github.com/marcobehler/marcobehler-guides[GitHub repository].
+
+At the same, I wanted to keep the rest private and somehow end up with a unified repository, where I directly "link" the public one, into the private one.
 
 If you're curious about how to do that and also how to remove sensitive data from any Git repo, this post is for you.
 
-=== Splitting Repositories
+== Splitting Repositories
 
 Before you start, you'll need to install https://github.com/newren/git-filter-repo[git-filter-repo], a handy Python script that lets you do all the things you never even knew you wanted to do with a Git repository.
 
@@ -128,11 +130,11 @@ Date:   Mon Nov 13 17:15:32 2018 +0100
 ----
 
 
-=== Subtree Merges
+== Subtree Merges
 
 Now that I had two repositories, I asked myself how I could link these two, i.e. end up with one unified repository. Or put another way: I wanted to include the _new_ repository into my _old_ repository.
 
-[plantuml, format=svg, opts="inline"]
+[plantuml,subtree-merges-v2, format=svg, opts="inline"]
 ----
 skinparam Legend {
 	BackgroundColor transparent
@@ -165,7 +167,8 @@ marcobehlercom (old repo)
   |_ ...
 |_ marcobehler-guides (new repo)
   |_ git.adoc
-  |_ etc.adoc
+  |_ spring.adoc
+  |_ maven.adoc
 end legend
 ----
 
@@ -219,7 +222,7 @@ git pull -s subtree {remote name} {branch name}
 
 Does anyone know any better ways for the syncing?
 
-=== Removing Sensitive Data
+== Removing Sensitive Data
 
 Along the way I noticed I wanted to remove a couple of files from my new repository and also remove any trace of these files/contents from the Git history. (It might even have been the case that a friend asked me how to get rid of a leaked credential in his repository )
 
@@ -240,7 +243,7 @@ java -jar bfg.jar --delete-files {your relative file path with sensitive data}
 
 Now there won't be any trace of your sensitive data left.
 
-=== Fin
+== Fin
 
 That's all. I have the feeling I'll need another couple years to fully understand what Git, or rather tools like `_git filter-repo_` are capable of doing. It almost looks like a runner up to https://www.ffmpeg.org/[ffmpeg] in terms of complexity. So, stay tuned for more Git posts!
 
