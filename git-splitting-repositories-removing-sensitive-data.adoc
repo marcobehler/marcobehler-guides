@@ -31,7 +31,7 @@ cd {repository name}
 
 In my case, I wanted to make one specific subfolder of this repository (`_marcobehler-guides/eins/zwei/drei_`) the ROOT for my new repository.
 
-[plantuml, format=svg, opts="inline"]
+[plantuml, repo-v2, format=svg, opts="inline"]
 ----
 skinparam Legend {
 	BackgroundColor transparent
@@ -39,25 +39,8 @@ skinparam Legend {
 	FontSize 17
 }
 
-' We use skinparams to hide our dummy participant
-' and make it as little space as possible
-skinparam SequenceLifeLineBorderThickness 0
-skinparam SequenceLifeLineBorderColor transparent
-skinparam SequenceParticipant {
-	BackgroundColor transparent
-	BorderColor transparent
-	Shadowing false
-	FontSize 0
-	BorderThickness 0
-	Padding 0
-}
-hide footbox
-
-' "participant" nudges PlantUML to a sequence diagram
-participant dummy
-
 legend top left
-marcobehlercom
+marcobehler-guides
 |_ eins
   |_ zwei
     |_ drei
@@ -78,7 +61,7 @@ git filter-repo --subdirectory-filter {relative-folder-path}
 
 You'll end up with a new Git repository, that only contains the files from your specified subdirectory.
 
-[plantuml, format=svg, opts="inline"]
+[plantuml, new-split-v2, format=svg, opts="inline"]
 ----
 skinparam Legend {
 	BackgroundColor transparent
@@ -86,33 +69,14 @@ skinparam Legend {
 	FontSize 17
 }
 
-' We use skinparams to hide our dummy participant
-' and make it as little space as possible
-skinparam SequenceLifeLineBorderThickness 0
-skinparam SequenceLifeLineBorderColor transparent
-skinparam SequenceParticipant {
-	BackgroundColor transparent
-	BorderColor transparent
-	Shadowing false
-	FontSize 0
-	BorderThickness 0
-	Padding 0
-}
-hide footbox
-
-' "participant" nudges PlantUML to a sequence diagram
-participant dummy
-
 legend top left
-marcobehlercom
+marcobehler-guides
 |_ git.adoc
 |_ spring.adoc
 |_ maven.adoc
 |_ ...
 end legend
 ----
-
-
 
 As a bonus, this command keeps the entire Git history for all those files!
 
