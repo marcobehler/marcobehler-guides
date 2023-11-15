@@ -98,30 +98,13 @@ Date:   Mon Nov 13 17:15:32 2018 +0100
 
 Now that I had two repositories, I asked myself how I could link these two, i.e. end up with one unified repository. Or put another way: I wanted to include the _new_ repository into my _old_ repository.
 
-[plantuml,subtree-merges-v2, format=svg, opts="inline"]
+[plantuml,subtree-merges-v3, format=svg, opts="inline"]
 ----
 skinparam Legend {
 	BackgroundColor transparent
 	BorderThickness 0
 	FontSize 17
 }
-
-' We use skinparams to hide our dummy participant
-' and make it as little space as possible
-skinparam SequenceLifeLineBorderThickness 0
-skinparam SequenceLifeLineBorderColor transparent
-skinparam SequenceParticipant {
-	BackgroundColor transparent
-	BorderColor transparent
-	Shadowing false
-	FontSize 0
-	BorderThickness 0
-	Padding 0
-}
-hide footbox
-
-' "participant" nudges PlantUML to a sequence diagram
-participant dummy
 
 legend top left
 marcobehlercom (old repo)
@@ -211,4 +194,4 @@ Now there won't be any trace of your sensitive data left.
 
 That's all. I have the feeling I'll need another couple years to fully understand what Git, or rather tools like `_git filter-repo_` are capable of doing. It almost looks like a runner up to https://www.ffmpeg.org/[ffmpeg] in terms of complexity. So, stay tuned for more Git posts!
 
-Meanwhile, you might enjoy my https://www.marcobehler.com/guides/git-merge-rebase[Git: Merge, Cherry-Pick & Rebase] guide.
+Meanwhile, you might enjoy my https://www.marcobehler.com/guides/git-merge-rebase[Git: Merge, Cherry-Pick & Rebase] guide. Or, if you prefer video and are using IntelliJ IDEA, check out https://youtu.be/Ase_X9p6exw?feature=shared[5 great Git & IntelliJ IDEA Tricks].
