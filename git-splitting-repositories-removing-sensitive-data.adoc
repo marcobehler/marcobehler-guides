@@ -1,0 +1,173 @@
+= How to split Git repositories & remove sensitive data
+Marco Behler
+2023-11-15
+:page-layout: layout-guides
+:page-image: "/images/guides/undraw_split_testing_l1uw.png"
+:page-published: true
+:page-tags: ["git", "git subtree", "git filter-repo"]
+:page-commento_id: git-splitting-repositories-removing-sensitive-data
+
+== How to split Git repositories & remove sensitive data
+This website, or rather its many parts, live in a monolithic GitHub repository. I wanted to split out the guides (like the one you are reading right now) into their own public https://github.com/marcobehler/marcobehler-guides[GitHub repository], but keep the rest private and somehow end up with a "unified" repository, where I directly "link" the public one, into the private one.
+
+If you're curious about how to do that and also how to remove sensitive data from any Git, this post is for you.
+
+=== Splitting Repositories
+
+Before you start, you'll need to install https://github.com/newren/git-filter-repo[git-filter-repo], a handy Python script that lets you do all the things you never even knew you wanted to do with a Git repository.
+
+Follow the https://github.com/newren/git-filter-repo/blob/main/INSTALL.md[installation instructions] here, essentially you need to download the `_git-filter-repo_` Python script and put it somewhere on your $PATH.
+
+Then, do a full, new clone of your repository and `_cd_` into it.
+
+[source,console]
+----
+git clone https://github.com/{username}/{repository name}
+
+cd {repository name}
+----
+
+In my case, I wanted to make one specific subfolder of this repository (`_marcobehler-guides/eins/zwei/drei_`) the ROOT for my new repository. The following command did the trick:
+
+[source,console]
+----
+git filter-repo --subdirectory-filter {relative-folder-path}
+
+// e.g. git filter-repo --subdirectory-filter marcobehler-guides/eins/zwei/drei
+----
+
+You'll end up with a new Git repository, that only contains the files from your specified subdirectory.
+
+As a bonus, this command keeps the entire Git history for all those files!
+
+[source,console]
+----
+git log
+
+...
+
+commit 53b84195d1197773b3c8969dc2ea07faef6041c7
+Author: Marco Behler <marco@marcobehler.com>
+Date:   Mon Nov 13 17:15:32 2018 +0100
+
+...
+----
+
+
+=== Subtree Merges
+
+Now that I had two repositories, I asked myself how I could link these two, i.e. end up with one unified repository. Or put another way: I wanted to include the _new_ repository into my _old_ repository.
+
+[plantuml, format=svg, opts="inline"]
+----
+skinparam Legend {
+	BackgroundColor transparent
+	BorderThickness 0
+	FontSize 17
+}
+
+' We use skinparams to hide our dummy participant
+' and make it as little space as possible
+skinparam SequenceLifeLineBorderThickness 0
+skinparam SequenceLifeLineBorderColor transparent
+skinparam SequenceParticipant {
+	BackgroundColor transparent
+	BorderColor transparent
+	Shadowing false
+	FontSize 0
+	BorderThickness 0
+	Padding 0
+}
+hide footbox
+
+' "participant" nudges PlantUML to a sequence diagram
+participant dummy
+
+legend top left
+marcobehlercom (old repo)
+|_ some_folder
+  |_ ...
+|_ another_folder
+  |_ ...
+|_ marcobehler-guides (new repo)
+  |_ git.adoc
+  |_ etc.adoc
+end legend
+----
+
+There seem to be two choices for this:
+
+* https://git-scm.com/book/en/v2/Git-Tools-Submodules[Git Submodules]
+* https://gist.github.com/SKempin/b7857a6ff6bddb05717cc17a44091202[Git Subtrees]
+
+I went down the Subtree path. If you have experiences with Submodules, please let me know in the comments. For subtrees, you'll want to execute these 3 steps:
+
+1. Add the URL to your new repository as a remote to your (old) repository.
+
+    [source,console]
+    ----
+    cd old-repository
+    git remote add -f {remote name} {url}
+    // e.g. git remote add -f marcobehler-guides https://github.com/marcobehler/marcobehler-guides.git
+    ----
+
+2. Make your old repository aware, that we (want to) merge possibly unrelated changes to it.
+
+    [source,console]
+    ----
+    $ git merge -s ours --no-commit --allow-unrelated-histories {remote name + / + branch name}
+    // e.g. $ git merge -s ours --no-commit --allow-unrelated-histories marcobehler-guides/main
+    > Automatic merge went well; stopped before committing as requested
+    ----
+
+3. Copy the new repository's content into a subfolder of your old repository.
+
+    [source,console]
+    ----
+     git read-tree --prefix={relative subfolder path} -u {remote name}/{branch name}
+     // e.g. git read-tree --prefix=marcobehle-guides/ -u marcobehler-guides/main
+    ----
+
+4. Tada! The files are now in your unified (old) repository.
+
+Challenges:
+
+* If there are new changes in the public repo, you'll have to manually sync the changes.
+
+[source, console]
+----
+git pull -s subtree {remote name} {branch name}
+
+// e.g. git pull -s subtree marcobehler-guides main
+----
+
+* If you create a fresh clone of your unified repository in the future, you'll also have to go through the steps above again, e.g. add the remote etc.
+
+Does anyone know any better ways for the syncing?
+
+=== Removing Sensitive Data
+
+Along the way I noticed I wanted to remove a couple of files from my new repository and also remove any trace of these files/contents from the Git history. (It might even have been the case that a friend asked me how to get rid of a leaked credential in his repository )
+
+While you can use `_git filter-repo_` above to do that job, I used https://rtyley.github.io/bfg-repo-cleaner/[BFG Repo-Cleaner], because it seems to be simpler and faster (the website claims 10-720x - who wouldn't [line-through]#need# want that for a single run ;) ).
+
+`_bfg_` is a good, old Java program, so you'll need https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[to have a JDK installed]. Then simply download the `_.jar_` file and you can run it like so:
+
+[source,console]
+----
+java -jar bfg.jar --delete-files {your relative file path with sensitive data}
+
+//e.g. java -jar bfg.jar --delete-files mysubDir/passwords.txt
+----
+
+*Important note*: I erroneously assumed that `_BFG_` will delete the file starting from my current commit. Not so.
+
+`_BFG_` will only delete the *history* of the file. Which means, you'll actually first need to remove (`_git rm_`) the file. Commit that change so it's gone. *Then* run `_BFG_` to clean up the history of the file.
+
+Now there won't be any trace of your sensitive data left.
+
+=== Fin
+
+That's all. I have the feeling I'll need another couple years to fully understand what Git, or rather tools like `_git filter-repo_` are capable of doing. It almost looks like a runner up to https://www.ffmpeg.org/[ffmpeg] in terms of complexity. So, stay tuned for more Git posts!
+
+Meanwhile, you might enjoy my https://www.marcobehler.com/guides/git-merge-rebase[Git: Merge, Cherry-Pick & Rebase] guide.
