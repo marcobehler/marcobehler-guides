@@ -10,13 +10,13 @@ Marco Behler
 == How to split Git repositories & remove sensitive data
 This website, or rather its many parts, live in a monolithic GitHub repository. I wanted to split out the guides (like the one you are reading right now) into their own public https://github.com/marcobehler/marcobehler-guides[GitHub repository], but keep the rest private and somehow end up with a "unified" repository, where I directly "link" the public one, into the private one.
 
-If you're curious about how to do that and also how to remove sensitive data from any Git, this post is for you.
+If you're curious about how to do that and also how to remove sensitive data from any Git repo, this post is for you.
 
 === Splitting Repositories
 
 Before you start, you'll need to install https://github.com/newren/git-filter-repo[git-filter-repo], a handy Python script that lets you do all the things you never even knew you wanted to do with a Git repository.
 
-Follow the https://github.com/newren/git-filter-repo/blob/main/INSTALL.md[installation instructions] here, essentially you need to download the `_git-filter-repo_` Python script and put it somewhere on your $PATH.
+Follow the https://github.com/newren/git-filter-repo/blob/main/INSTALL.md[installation instructions] here, essentially you need to download the `_git-filter-repo_` Python script and put it somewhere on your `_$PATH_`.
 
 Then, do a full, new clone of your repository and `_cd_` into it.
 
@@ -27,7 +27,45 @@ git clone https://github.com/{username}/{repository name}
 cd {repository name}
 ----
 
-In my case, I wanted to make one specific subfolder of this repository (`_marcobehler-guides/eins/zwei/drei_`) the ROOT for my new repository. The following command did the trick:
+In my case, I wanted to make one specific subfolder of this repository (`_marcobehler-guides/eins/zwei/drei_`) the ROOT for my new repository.
+
+[plantuml, format=svg, opts="inline"]
+----
+skinparam Legend {
+	BackgroundColor transparent
+	BorderThickness 0
+	FontSize 17
+}
+
+' We use skinparams to hide our dummy participant
+' and make it as little space as possible
+skinparam SequenceLifeLineBorderThickness 0
+skinparam SequenceLifeLineBorderColor transparent
+skinparam SequenceParticipant {
+	BackgroundColor transparent
+	BorderColor transparent
+	Shadowing false
+	FontSize 0
+	BorderThickness 0
+	Padding 0
+}
+hide footbox
+
+' "participant" nudges PlantUML to a sequence diagram
+participant dummy
+
+legend top left
+marcobehlercom
+|_ eins
+  |_ zwei
+    |_ drei
+      |_ git.adoc
+      |_ spring.adoc
+      |_ maven.adoc
+end legend
+----
+
+The following command did the trick:
 
 [source,console]
 ----
@@ -37,6 +75,42 @@ git filter-repo --subdirectory-filter {relative-folder-path}
 ----
 
 You'll end up with a new Git repository, that only contains the files from your specified subdirectory.
+
+[plantuml, format=svg, opts="inline"]
+----
+skinparam Legend {
+	BackgroundColor transparent
+	BorderThickness 0
+	FontSize 17
+}
+
+' We use skinparams to hide our dummy participant
+' and make it as little space as possible
+skinparam SequenceLifeLineBorderThickness 0
+skinparam SequenceLifeLineBorderColor transparent
+skinparam SequenceParticipant {
+	BackgroundColor transparent
+	BorderColor transparent
+	Shadowing false
+	FontSize 0
+	BorderThickness 0
+	Padding 0
+}
+hide footbox
+
+' "participant" nudges PlantUML to a sequence diagram
+participant dummy
+
+legend top left
+marcobehlercom
+|_ git.adoc
+|_ spring.adoc
+|_ maven.adoc
+|_ ...
+end legend
+----
+
+
 
 As a bonus, this command keeps the entire Git history for all those files!
 
@@ -103,34 +177,34 @@ There seem to be two choices for this:
 I went down the Subtree path. If you have experiences with Submodules, please let me know in the comments. For subtrees, you'll want to execute these 3 steps:
 
 1. Add the URL to your new repository as a remote to your (old) repository.
-
-    [source,console]
-    ----
-    cd old-repository
-    git remote add -f {remote name} {url}
-    // e.g. git remote add -f marcobehler-guides https://github.com/marcobehler/marcobehler-guides.git
-    ----
++
+[source,console]
+----
+cd old-repository
+git remote add -f {remote name} {url}
+// e.g. git remote add -f marcobehler-guides https://github.com/marcobehler/marcobehler-guides.git
+----
 
 2. Make your old repository aware, that we (want to) merge possibly unrelated changes to it.
-
-    [source,console]
-    ----
-    $ git merge -s ours --no-commit --allow-unrelated-histories {remote name + / + branch name}
-    // e.g. $ git merge -s ours --no-commit --allow-unrelated-histories marcobehler-guides/main
-    > Automatic merge went well; stopped before committing as requested
-    ----
++
+[source,console]
+----
+$ git merge -s ours --no-commit --allow-unrelated-histories {remote name + / + branch name}
+// e.g. $ git merge -s ours --no-commit --allow-unrelated-histories marcobehler-guides/main
+> Automatic merge went well; stopped before committing as requested
+----
 
 3. Copy the new repository's content into a subfolder of your old repository.
-
-    [source,console]
-    ----
-     git read-tree --prefix={relative subfolder path} -u {remote name}/{branch name}
-     // e.g. git read-tree --prefix=marcobehle-guides/ -u marcobehler-guides/main
-    ----
++
+[source,console]
+----
+ git read-tree --prefix={relative subfolder path} -u {remote name}/{branch name}
+ // e.g. git read-tree --prefix=marcobehle-guides/ -u marcobehler-guides/main
+----
 
 4. Tada! The files are now in your unified (old) repository.
 
-Challenges:
+Challenges with the subtree approach:
 
 * If there are new changes in the public repo, you'll have to manually sync the changes.
 
