@@ -1,4 +1,4 @@
-= How to split Git repositories & remove sensitive data
+= How to split and remove sensitive data from Git repositories
 Marco Behler
 2023-11-15
 :page-layout: layout-guides
@@ -157,7 +157,7 @@ $ git merge -s ours --no-commit --allow-unrelated-histories {remote name + / + b
 Challenges with the subtree approach:
 
 * If there are new changes in the public repo, you'll have to manually sync the changes.
-
++
 [source, console]
 ----
 git pull -s subtree {remote name} {branch name}
