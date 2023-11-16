@@ -1,4 +1,4 @@
-= How to split and remove sensitive data from Git repositories
+= Git: Splitting Repos and Scrubbing Sensitive Data
 Marco Behler
 2023-11-15
 :page-layout: layout-guides
