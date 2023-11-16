@@ -12,7 +12,7 @@ Marco Behler
 
 == Introduction
 
-If you're a developer and have either never used Kubernetes before or want to brush up your knowledge so that you can scare your DevOps colleagues, this guide is for you.
+If you're a developer who has either never used Kubernetes before or wants to brush up on K8 knowledge so that your DevOps colleagues will be scared, this guide is for you.
 
 
 == Acknowledgments
