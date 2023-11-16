@@ -1,0 +1,19 @@
+= Kubernetes for Lazy Developers
+Marco Behler
+2023-11-16
+:page-layout: layout-guides
+:page-image: "TODO"
+:page-description: TODO
+:page-published: false
+:page-tags: ["kuberntes"]
+:page-commento_id: /guides/kubernetes-for-lazy-developer
+
+(*Editor’s note*: At ~n words, you probably don't want to try reading this on a mobile device. Bookmark it and come back later.)
+
+== Introduction
+
+Yet to come
+
+== Acknowledgments
+
+Yet to come.
