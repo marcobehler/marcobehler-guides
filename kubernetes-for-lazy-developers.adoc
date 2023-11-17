@@ -14,7 +14,150 @@ Marco Behler
 
 If you're a developer who has either never used Kubernetes before or wants to brush up on K8 knowledge so that your DevOps colleagues will be scared, this guide is for you.
 
+=== How did we get here?
+
+Many devs don't care, where their stuff is being run.....
+
+What does running actually mean? In case of Java, java -jar....ex. php / ruby
+
+lowest common denominator..no matter how much technolgy you pour on top
+
+=== Docker to the rescue?
+
+someone told you buliding docker images is the right thing to do...explaion..pros / cons
+
+depending on the programming language....Java ecosystem vs other ecosystems......highlight incompatibilities
+
+=== What are benefits/drawbacks of the Docker approach?
+
+note: cut, condense, simpliyfy
+
+even though you'll immediately find plenty of people discussing potential version incompatibilities, java is unlike python or ruby
+
+nenn mir EIN docker image das du OHNE ZU WISSEN WAS ES TUT einfach wo deployen kannst
+du musst auf dockerhub die environment variables lesen
+du mussst wissen welche volumes und shit du bereitstellen musst
+es ist also nicht "doppelklick app.exe"
+
+rl problem: too little reosurces, killing health-checks, oom, architects, etc.
+
+
+=== What do we do with these Docker images?
+
+Deploy them somewhere...but how? registry, running manual commands, docker compozzzzze
+
+=== What do I need Kubernetes for, then?
+
+orchestrator....run and manage docker containers..... what does managing containers mean
+
+graphic...plantuml
+
+=== Kubernetes 101: Control Pane
+
+=== Kubernetes 102: Worker Nodes
+
+=== Kubernetes 103: Management
+
+pods
+wie
+run containers.....healthchecks...self healing....what does that even mean? ubuntu/upstart since the break of dawn: restart hanging processes
+
+=== Why do I as a developer need to know this stuff?
+
+=== How does Kubernetes do all this? YAML!
+
+YAML, YAML, YAML...have a deployment...tell Kubernetes: Go.
+
+== How can I apply this YAML file?
+
+kubectl...
+
+=== Kubectl primer
+
+What is kubectl?
+
+what can kubectl do? apply ? ssh? other stuff?
+
+=== Meet kubeconfig file
+
+kubectl works against a clste.r.....namepsaces..
+
+=== Self-Healing: Lie
+
+self healing: systemd oder supervisord
+
+=== What else can Kubernetes do for me? Secrets Management
+
+https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/
+
+=== Don't these YAML files become a mess?
+
+Kustomize / Helm Charts + IDE support
+
+
+
+IntelliJ IDEA support
+
+https://www.jetbrains.com/help/idea/kubernetes.html  (IntelliJ IDEA Ultimate)
+
+[link video]
+
+=== what are helm charts...
+
+=== what is kustomize?
+
+=== What is Terraform?
+
+=== DO I really need all of this?
+
+cgroups....resources....limitation......real life -> 0,5 CPUS.....in development needing the latest macbook pro 64 gig
+
+book reference....100s of applications ok...but what about 100thousands.....missing reference (anyone?)
+
+Comparison with ansible.....puppet?
+
+application servers vs kubernetes...
+
+=== Framework Support
+
+spring boot builds directly into docker image.....optimized .....
+
+=== How does Kubernetes influence my local development?
+
+=== How do I do local development with Kubernetes?
+
+twitter poll
+
+For Development...Docker compose.....
+
+docker-compose files...and K8s manifest files...
+
+clulster & skaffold
+
+minikube....
+
+testcontainers...
+
+===  online hype stories && what ifs?????
+
+strive a career in sales and marketing if you can plausibly explain where 5x the traffic will come from tomorrow....
+
+online hype stories vs reality
+
+blog post from jason cohen on
+
+https://longform.asmartbear.com/exponential-growth/
+
+=== moving complexity
+
+reference kubernetes book...2016 devops...study...would like to have a closer look
+
+100000 of books for Kubernetes...100s of pages to set up just networking
+
+=== Fin
+
+small workloads, vs . google sized workloads....while default seems to be k8, do you really NEED this stuff??
 
 == Acknowledgments
 
-Yet to come.
+Yet to come. Ssend in a PR btw if you don't like something
