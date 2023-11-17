@@ -14,6 +14,8 @@ Marco Behler
 
 If you're a developer who has either never used Kubernetes before or wants to brush up on K8 knowledge so that your DevOps colleagues will be scared, this guide is for you.
 
+TODO TODO
+
 === How did we get here?
 
 Many devs don't care, where their stuff is being run.....
