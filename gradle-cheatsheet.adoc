@@ -1,0 +1,113 @@
+= Gradle - Cheat Sheet
+Marco Behler
+2023-11-21
+:page-layout: layout-guides
+:linkattrs:
+:page-image: "/images/guides/TODO.png"
+:page-description: I keep forgetting the Gradle commands I'm using on a daily basis - hence, this cheat sheet. Maybe you find it useful.
+:page-published: false
+:page-tags: ["gradlew", "gradle", "gradle cheat sheet"]
+:page-commento_id: gradle-cheat-sheet
+
+
+(Note: The Cheat-Sheet generally shows Linux/macOS specific commands. For Windows, replace e.g. `_./gradlew build_` with just `_gradlew build_`)
+
+== Running Gradle & your build with a specific Java version
+
+1. `_gradle.properties_` in your project directory
++
+[source,console]
+----
+org.gradle.java.home=/path_to_jdk_directory
+----
+
+2. `_gradle.properties_` in the .gradle directory in your HOME_DIRECTORY
++
+[source,console]
+----
+org.gradle.java.home=/path_to_jdk_directory
+----
+
+== Build a submodule
+
+Instead of doing this:
+
+[source,console]
+----
+cd myproject
+cd mysubmodule
+../gradlew.bat build
+----
+
+do:
+
+[source,console]
+----
+cd myproject
+./gradlew build -p mysubmodule
+
+// or
+
+./gradlew :mysubmodule:build
+----
+
+== Build + Skipping Tests
+
+[source,console]
+----
+./gradlew build -x test
+----
+== Build Spring Boot Docker Image
+
+[source,console]
+----
+./gradlew bootBuildImage --imageName=myorg/myapp
+----
+
+== Upgrade Gradle Wrapper
+
+[source,console]
+----
+./gradlew wrapper --gradle-version 8.4
+----
+
+If that fails, e.g. the new Gradle version is incompatible with your project or your JDK version, or whatever, you're stuck in an endless loop, because you won't be able to run the wrapper anymore.
+
+You can then do a "hard-reset" by changing the Gradle wrapper version in this file:
+
+[source,console]
+----
+yourprojectgradle\wrapper\gradle-wrapper.properties
+
+## change the version number in the distributionUrl
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-bin.zip
+----
+
+== Gradle Pre-7 <-> Gradle >= 7 mapping.
+
+* `_compile_` <-> `_api_` (public, i.e. will become a transitive dependency for other modules) and `_implementation_` (private, other modules won't "see" it)
+* `_testCompile_` <-> `_testImplementation_`
+
+== Gradle + Spring Boot: Custom Dependency Versions
+
+See section "Version Properties" here: https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html
+
+[source,groovy]
+----
+// from your build.gradle file
+ext['jetty.version'] = '11.0.14'
+----
+
+== Gradle: Setting the right Java Version
+
+
+== IntelliJ IDEA
+
+Refresh. Refresh. Refresh. Never forget to click that button, after changing your `_build.gradle(.kts)_` file.
+
+[TODO image]
+
+== More
+
+Please add your own suggestions with a PR and I'll happily merge them.
+
