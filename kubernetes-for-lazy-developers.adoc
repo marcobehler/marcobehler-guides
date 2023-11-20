@@ -12,41 +12,63 @@ Marco Behler
 
 == Introduction
 
-If you're a developer who has either never used Kubernetes before or wants to brush up on K8 knowledge so that your DevOps colleagues will be scared, this guide is for you.
+If you're a developer who has either never used Kubernetes before or wants to brush up on Kubernetes knowledge so that your DevOps colleagues will be [line-through]#scared# impressed, this guide is for you.
 
-TODO TODO
+*Quick Question*: Why is Kubernetes abbreviated to K8s?
+
+*Answer*: It will magically reveal itself at the end of this guide, but only after you having fully read it. So, let's not waste any more time.
 
 === How did we get here?
 
-Many devs don't care, where their stuff is being run.....
+Many developers I've met throughout my career, didn't necessarily care about the "now that I've written the code, it also needs to be run somewhere"-part of application development.
 
-What does running actually mean? In case of Java, java -jar....ex. php / ruby
+What does running an application actually mean? It depends a bit on your programming language ecosystem, but in terms of Java and modern web applications, you literally compile all your source in one, single, executable .jar file, that you can run with a simple command.
 
-lowest common denominator..no matter how much technolgy you pour on top
+[source,java]
+----
+java -jar myNewAIStartup.jar
+----
 
-=== Docker to the rescue?
+Yes, there is additionally very likely an `_application.properties_` file involved, to set e.g. production database credentials, but the command above is literally it: If you're deploying your application on bare metal, in a VM, in a Docker container, with or without Kubernetes, or your Java-powered toaster (ok, I made that one up).
 
-someone told you buliding docker images is the right thing to do...explaion..pros / cons
+=== Running just one command can't be it. Where is the catch?
 
-depending on the programming language....Java ecosystem vs other ecosystems......highlight incompatibilities
+Much has been written online about the issues that can arise when deploying your application:
 
-=== What are benefits/drawbacks of the Docker approach?
+* What if there are version incompatibilities between my DEV environment and my PRD environment?
+* What if certain, needed OS packages are missing?
+* What if we're not going to deploy our application to a cloud service anymore, but a submarine?
 
-note: cut, condense, simpliyfy
+Interestingly, your mileage with these problems will vary _a lot_ depending on what programming language ecosystem you're using, a topic that is often ignored in online discussions.
 
-even though you'll immediately find plenty of people discussing potential version incompatibilities, java is unlike python or ruby
+With pure Java web-applications, the issues mentioned above (apart from the submarine, of course), are essentially non-issues. You install a JDK, which is https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[insanely backwards compatible], on a server/vm/container, and run `_java -jar_`.
 
-nenn mir EIN docker image das du OHNE ZU WISSEN WAS ES TUT einfach wo deployen kannst
-du musst auf dockerhub die environment variables lesen
-du mussst wissen welche volumes und shit du bereitstellen musst
-es ist also nicht "doppelklick app.exe"
+With PHP, Python, or Ruby the picture looks different and you could/can easily run into version incompatibilities across your dev, staging or prod environments. Hence, people yearned for a solution to rid them of these pains: Containers. (*Side-Note)
 
-rl problem: too little reosurces, killing health-checks, oom, architects, etc.
+// TODO Site-Note : all these concerns aren't new....applicatikon servers etc.......schnittstellen
 
+=== Hail to the Docker!
+
+Chances are high that you already know what Docker is and how to work with it. (If not and you want to see a Docker specific guide, please post a comment down below! More demand -> Faster publication). The short summary is:
+
+* You build your deployable, e.g. the `_jar_` file.
+* You build a new Docker image, which contains your `_jar_` file.
+* The Docker Image also contains _all_ additional software and configuration options needed to run.
+
+-> You will now deploy your Docker image (and run it as a Docker container), instead of your .jar file. The beauty is: As long as you have Docker installed on the target machine you can run any Docker image you want (and you have Kernel compatibility between your host OS and the Docker container ).
+
+[source,console]
+----
+docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
+----
+
+This will start a Docker container on basis of the `_mynewaistartup_` Docker image. That image will, among other things, contain your e.g. -jar file, a web application which runs on port 8080, as well as instructions on how to run it. Hint: It's `_java -jar mynewaistartup.jar_`.
 
 === What do we do with these Docker images?
 
 Deploy them somewhere...but how? registry, running manual commands, docker compozzzzze
+
+=== Docker Compose to the rescue?
 
 === What do I need Kubernetes for, then?
 
@@ -156,6 +178,11 @@ reference kubernetes book...2016 devops...study...would like to have a closer lo
 
 100000 of books for Kubernetes...100s of pages to set up just networking
 
+Answered: K8s as an abbreviation results from counting the eight letters between the "K" and the "s". https://kubernetes.io/docs/concepts/overview/#:~:text=rapidly%20growing%20ecosystem.-,Kubernetes%20services%2C%20support%2C%20and%20tools%20are%20widely%20available.,the%20Kubernetes%20project%20in%202014[(source)].
+
+Enough with random, boring facts no one will remember, let's start at the very beginning.
+
+
 === Fin
 
 small workloads, vs . google sized workloads....while default seems to be k8, do you really NEED this stuff??
@@ -163,3 +190,18 @@ small workloads, vs . google sized workloads....while default seems to be k8, do
 == Acknowledgments
 
 Yet to come. Ssend in a PR btw if you don't like something
+
+
+
+
+=== TODO
+
+
+
+
+nenn mir EIN docker image das du OHNE ZU WISSEN WAS ES TUT einfach wo deployen kannst
+du musst auf dockerhub die environment variables lesen
+du mussst wissen welche volumes und shit du bereitstellen musst
+es ist also nicht "doppelklick app.exe"
+
+rl problem: too little reosurces, killing health-checks, oom, architects, etc.
