@@ -111,6 +111,14 @@ Refresh. Refresh. Refresh. Never forget to click that button, after changing you
 
 [TODO image]
 
+== New to Gradle? Want a refresher?
+
+You might enjoy this:
+
+// https://youtu.be/gKPMKRnnbXU
+
+TODO mbytvideo
+
 == More
 
 Please add your own suggestions with a PR and I'll happily merge them.
