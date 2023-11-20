@@ -10,14 +10,18 @@ Marco Behler
 :page-commento_id: gradle-cheat-sheet
 
 
-(Note: The Cheat-Sheet generally shows Linux/macOS specific commands. For Windows, replace e.g. `_./gradlew build_` with just `_gradlew build_`)
+(Note: The Cheat-Sheet generally shows Linux/macOS specific commands. For Windows, replace e.g. `_./gradlew build_` with just `_gradlew build_`, as the "." will lead to errors)
 
 == Running Gradle & your build with a specific Java version
+
+In addition to fumbling around with your `_JAVA_HOME_` env variable, do this:
 
 1. `_gradle.properties_` in your project directory
 +
 [source,console]
 ----
+// Note: Even on Windows, forward slashes only!!!
+
 org.gradle.java.home=/path_to_jdk_directory
 ----
 
@@ -25,6 +29,8 @@ org.gradle.java.home=/path_to_jdk_directory
 +
 [source,console]
 ----
+// Note: Even on Windows, forward slashes only!!!
+
 org.gradle.java.home=/path_to_jdk_directory
 ----
 
@@ -52,6 +58,7 @@ cd myproject
 ----
 
 == Build + Skipping Tests
+-x, -x, -x, not -DskipTests ;)
 
 [source,console]
 ----
@@ -83,23 +90,20 @@ yourprojectgradle\wrapper\gradle-wrapper.properties
 distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-bin.zip
 ----
 
-== Gradle Pre-7 <-> Gradle >= 7 mapping.
+== Gradle Pre-7 <-> Gradle >= 7 mapping
 
 * `_compile_` <-> `_api_` (public, i.e. will become a transitive dependency for other modules) and `_implementation_` (private, other modules won't "see" it)
 * `_testCompile_` <-> `_testImplementation_`
 
 == Gradle + Spring Boot: Custom Dependency Versions
 
-See section "Version Properties" here: https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html
+See section "Version Properties" here: https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html or all possible versions to override.
 
 [source,groovy]
 ----
-// from your build.gradle file
+// in your build.gradle file
 ext['jetty.version'] = '11.0.14'
 ----
-
-== Gradle: Setting the right Java Version
-
 
 == IntelliJ IDEA
 
