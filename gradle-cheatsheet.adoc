@@ -96,12 +96,12 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-bin.zip
 
 == Gradle Concepts
 
-== Gradle Pre-7 <-> Gradle >= 7 mapping
+=== Gradle Pre-7 <-> Gradle >= 7 mapping
 
 * `_compile_` <-> `_api_` (public, i.e. will become a transitive dependency for other modules) and `_implementation_` (private, other modules won't "see" the dependency)
 * `_testCompile_` <-> `_testImplementation_`
 
-== IntelliJ IDEA
+=== IntelliJ IDEA
 
 Always refresh.
 
@@ -109,7 +109,7 @@ Never forget to click that button, after changing your `_build.gradle(.kts)_` fi
 
 mbimage::/images/guides/gradle_refresh_button.png[]
 
-== New to Gradle? Want a refresher?
+=== New to Gradle? Want a refresher?
 
 You might enjoy this:
 
@@ -118,7 +118,7 @@ mb_youtube::gKPMKRnnbXU[]
 
 == Gradle Configuration Snippets
 
-== Gradle + Spring Boot: Custom Dependency Versions
+=== Gradle + Spring Boot: Custom Dependency Versions
 
 See section `_Version Properties_` here: https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html or all possible versions to override.
 
