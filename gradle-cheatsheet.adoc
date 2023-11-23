@@ -1,18 +1,19 @@
 = Gradle - Cheat Sheet
 Marco Behler
-2023-11-21
+2023-11-23
 :page-layout: layout-guides
 :linkattrs:
-:page-image: "/images/guides/TODO.png"
+:page-image: "/images/guides/undraw_Building_re_xfcm.png"
 :page-description: I keep forgetting the Gradle commands I'm using on a daily basis - hence, this cheat sheet. Maybe you find it useful.
 :page-published: false
 :page-tags: ["gradlew", "gradle", "gradle cheat sheet"]
 :page-commento_id: gradle-cheat-sheet
 
+(Note: The cheat-sheet generally shows Linux/macOS specific commands. For Windows, replace e.g. `_./gradlew build_` with just `_gradlew build_`, as the "." will lead to errors)
 
-(Note: The Cheat-Sheet generally shows Linux/macOS specific commands. For Windows, replace e.g. `_./gradlew build_` with just `_gradlew build_`, as the "." will lead to errors)
+== Popular Gradle Commands
 
-== Running Gradle & your build with a specific Java version
+=== Running your build with a specific Java version
 
 In addition to fumbling around with your `_JAVA_HOME_` env variable, do this:
 
@@ -34,7 +35,7 @@ org.gradle.java.home=/path_to_jdk_directory
 org.gradle.java.home=/path_to_jdk_directory
 ----
 
-== Build a submodule
+=== Build a submodule
 
 Instead of doing this:
 
@@ -57,28 +58,31 @@ cd myproject
 ./gradlew :mysubmodule:build
 ----
 
-== Build + Skipping Tests
--x, -x, -x, not -DskipTests ;)
+=== Build + Skipping Tests
+
+Not `_-DskipTests_` ;)
 
 [source,console]
 ----
 ./gradlew build -x test
 ----
-== Build Spring Boot Docker Image
+=== Build Spring Boot Docker Image
 
 [source,console]
 ----
 ./gradlew bootBuildImage --imageName=myorg/myapp
 ----
 
-== Upgrade Gradle Wrapper
+=== Upgrade Gradle Wrapper
 
 [source,console]
 ----
+// ./gradlew wrapper --gradle-version {version}
+
 ./gradlew wrapper --gradle-version 8.4
 ----
 
-If that fails, e.g. the new Gradle version is incompatible with your project or your JDK version, or whatever, you're stuck in an endless loop, because you won't be able to run the wrapper anymore.
+If that fails, e.g. the new Gradle version is incompatible with your project or your JDK version you will be stuck in an endless loop, because you won't be able to run the wrapper anymore.
 
 You can then do a "hard-reset" by changing the Gradle wrapper version in this file:
 
@@ -90,14 +94,33 @@ yourprojectgradle\wrapper\gradle-wrapper.properties
 distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-bin.zip
 ----
 
+== Gradle Concepts
+
 == Gradle Pre-7 <-> Gradle >= 7 mapping
 
-* `_compile_` <-> `_api_` (public, i.e. will become a transitive dependency for other modules) and `_implementation_` (private, other modules won't "see" it)
+* `_compile_` <-> `_api_` (public, i.e. will become a transitive dependency for other modules) and `_implementation_` (private, other modules won't "see" the dependency)
 * `_testCompile_` <-> `_testImplementation_`
+
+== IntelliJ IDEA
+
+Always refresh.
+
+Never forget to click that button, after changing your `_build.gradle(.kts)_` file.
+
+mbimage::/images/guides/gradle_refresh_button.png[]
+
+== New to Gradle? Want a refresher?
+
+You might enjoy this:
+
+mb_youtube::gKPMKRnnbXU[]
+
+
+== Gradle Configuration Snippets
 
 == Gradle + Spring Boot: Custom Dependency Versions
 
-See section "Version Properties" here: https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html or all possible versions to override.
+See section `_Version Properties_` here: https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html or all possible versions to override.
 
 [source,groovy]
 ----
@@ -105,21 +128,11 @@ See section "Version Properties" here: https://docs.spring.io/spring-boot/docs/c
 ext['jetty.version'] = '11.0.14'
 ----
 
-== IntelliJ IDEA
+=== More.
+...soon.
 
-Refresh. Refresh. Refresh. Never forget to click that button, after changing your `_build.gradle(.kts)_` file.
 
-[TODO image]
-
-== New to Gradle? Want a refresher?
-
-You might enjoy this:
-
-// https://youtu.be/gKPMKRnnbXU
-
-TODO mbytvideo
-
-== More
+== Your help is needed
 
 Please add your own suggestions with a PR and I'll happily merge them.
 
