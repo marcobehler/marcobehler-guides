@@ -12,7 +12,7 @@ Marco Behler
 
 == Introduction
 
-If you're a developer who has either never used Kubernetes before or wants to brush up on Kubernetes knowledge so that your DevOps colleagues will be [line-through]#scared# impressed, this guide is for you.
+If you're a developer who has either never used Kubernetes before or wants to brush up on Kubernetes knowledge so that your DevOps colleagues will be [line-through]#scared# positively surprised, this guide is for you.
 
 *Quick Question*: Why is Kubernetes abbreviated to K8s?
 
@@ -125,27 +125,55 @@ If your application...
 
 === What do I need Kubernetes for, then?
 
-How can any of the above be true, if seemingly the _whole world_ is using Kubernetes?? Let's find out.
+Things get interesting if you want to start running hundreds, thousands (or a multiple of that) containers, if you don't care or don't want to know on what specific underlying hardware/box your containers will be running on, yet still want to be able to sensibly manage all of this. Kubernetes, to the rescue!
 
-orchestrator....run and manage docker containers..... what does managing containers mean
+Let's do a quick Kubernetes Concept 101.
 
-graphic...plantuml
+TODO GRAPH UML control pane workload..
+
+=== Kubernetes 102: (Worker) Nodes
+
+Your software (or _workload_ in Kubernetes terms) has to run somewhere, be it a virtual or physical machine. Kubernetes call this somewhere `_Nodes_`.
+
+Furthermore, Kubernetes deploys and runs containers: Hello, Docker, my old friend!
+
+Actually, this is not 100% right. In Kubernete's terms, you deploy `_Pods_`, with a pod consisting of one or more containers.
+
+Alright, we got `_pods_` running on `_nodes_`, but who controls those nodes and how and where do you decide what to run on these `_nodes_`?
 
 === Kubernetes 101: Control Pane
 
-=== Kubernetes 102: Worker Nodes
+Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one_ component that controls your node (as opposed to the https://kubernetes.io/docs/concepts/overview/components/[roughly 947 components] it consists of):
 
-=== Kubernetes 103: Management
+* Let's [line-through]#run# _schedule_ your application, i.e. let's put a pod on a node.
+* Are your pods all in the desired state, e.g. responsive or does one of them need to be restarted?
+* Every engineer's dream: We need to finally scale (yay!), let's quickly spin up 5 more pods!
 
-pods
-wie
-run containers.....healthchecks...self healing....what does that even mean? ubuntu/upstart since the break of dawn: restart hanging processes
+=== Kubernetes 101: Clusters & Clouds
 
-=== Why do I as a developer need to know this stuff?
+Take your nodes and your control pane, and you have a cluster.
+
+Take multiple clusters e.g. to separate dev, test & production environments or maybe teams/projects/application types.
+
+The gold standard ('tm), run multiple clusters across multiple private and/or public cloud platforms: Multi-Cloud Kubernetes!
+
+=== Kubernetes 101: Addons
+
+Web UI...Amazon dashboard...Goolg eCloud Console...
+
+
+=== Is that it?
+
+this is a quick summary for developers...the truth is...enormous complexity....books on oreilly.......more pages than you can imagine to read
+
 
 === How does Kubernetes do all this? YAML!
 
 YAML, YAML, YAML...have a deployment...tell Kubernetes: Go.
+
+=== Why do I as a developer need to know this stuff?
+
+If you have been reading along so far,
 
 == How can I apply this YAML file?
 
@@ -164,6 +192,10 @@ kubectl works against a clste.r.....namepsaces..
 === Self-Healing: Lie
 
 self healing: systemd oder supervisord
+
+pods
+wie
+run containers.....healthchecks...self healing....what does that even mean? ubuntu/upstart since the break of dawn: restart hanging processes
 
 === What else can Kubernetes do for me? Secrets Management
 
