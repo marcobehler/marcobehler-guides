@@ -62,15 +62,70 @@ Chances are high that you already know what Docker is and how to work with it. (
 docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
 ----
 
-This will start a Docker container on basis of the `_mynewaistartup_` Docker image. That image will, among other things, contain your e.g. -jar file, a web application which runs on port 8080, as well as instructions on how to run it. Hint: It's `_java -jar mynewaistartup.jar_`.
+This will start a Docker container on basis of the `_mynewaistartup_` Docker image. That image will, among other things, contain your e.g. -jar file, a web application which runs on port 8080, as well as instructions on how to run it. Hint: These instructions are `_java -jar mynewaistartup.jar_`.
 
 === What do we do with these Docker images?
 
-Deploy them somewhere...but how? registry, running manual commands, docker compozzzzze
+You or your CI/CD server managed to bake your application into a Docker image. But how does that Docker image eventually end up on your target deployment server?
 
-=== Docker Compose to the rescue?
+You'll need to push your Docker image to a Docker registry, be that https://hub.docker.com/_/registry[dockerhub], https://aws.amazon.com/ecr/[Amazon ECR] or any of the other gazillion self-hosted container image registries, like https://docs.gitlab.com/ee/user/packages/container_registry/[Gitlab's], for example.
+
+Once your image made it to said registry, you can https://docs.docker.com/engine/reference/commandline/login/[login] to that registry on your targetserver.
+
+[source,console]
+----
+docker login mysupersecret.registry.com
+----
+
+And once you are logged in to your registry, your `_docker run_` will be able to find your custom images.
+
+[source,console]
+----
+docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
+
+//....
+
+SUCCESS!
+----
+
+=== Docker Compose: Running more than one container simultaneously
+
+What if your application consists of more than just a single Docker container, say, because you need to run https://www.marcobehler.com/guides/java-microservices-a-practical-guide[98354 microservices]?
+
+https://docs.docker.com/compose/[Docker Compose] to the rescue. You'll define all your services and the dependencies between them (run this one or the other one first) in a good, old, YAML file, a `_compose.yaml_`. Here's an example of such a file, defining two services, a web service and a redis service.
+
+[source,yaml]
+----
+services:
+  web:
+    build: .
+    ports:
+      - "8000:5000"
+    volumes:
+      - .:/code
+      - logvolume01:/var/log
+    depends_on:
+      - redis
+  redis:
+    image: redis
+volumes:
+  logvolume01: {}
+----
+
+Then you just run `_docker compose up_` and your whole _environment_ (consisting of all your separate services) will be started.
+
+While `_Docker Compose_` might be mainly known for quickly spinning up development or testing environments, it actually works really well for single host deployments as well.
+If your application...
+
+* doesn't have any specific high-availability requirements
+* you don't mind some manual work (ssh login, docker compose up/down) or using a complementary tool like https://www.ansible.com/[Ansible]
+* or you simply don't want to spend enormous amounts of [line-through]#money# investments on a DevOps team
+
+...using Docker Compose for production deployments will go a long way.
 
 === What do I need Kubernetes for, then?
+
+How can any of the above be true, if seemingly the _whole world_ is using Kubernetes?? Let's find out.
 
 orchestrator....run and manage docker containers..... what does managing containers mean
 
