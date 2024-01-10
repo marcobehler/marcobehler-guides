@@ -163,17 +163,13 @@ There are also a fair amount of https://kubernetes.io/docs/concepts/overview/com
 
 === Please, let's stop with the Kubernetes 101
 
-Make no mistake about it. Those four 101-sections above will (hopefully) give you enough of a mental model to get started with Kubernetes as a -developer-, i.e. an end-user.
+Make no mistake about it. Those four 101-sections above will (hopefully) give you enough of a mental model to get started with Kubernetes.
 
-On the other hand, you might want to enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day!
+On the other hand, you might want to enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day! The good thing: you, as a developer, don't have to worry about most of what's written in those books (though being aware of the sheer setup complexity definitely helps)
 
-=== How does Kubernetes do all this? YAML!
+=== Wait, we haven't talked about YAML yet?
 
 YAML, YAML, YAML...have a deployment...tell Kubernetes: Go.
-
-=== Why do I as a developer need to know this stuff?
-
-If you have been reading along so far,
 
 == How can I apply this YAML file?
 
@@ -204,8 +200,6 @@ https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/
 === Don't these YAML files become a mess?
 
 Kustomize / Helm Charts + IDE support
-
-
 
 IntelliJ IDEA support
 
