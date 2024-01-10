@@ -137,7 +137,7 @@ Your software (or _workload_ in Kubernetes terms) has to run somewhere, be it a 
 
 Furthermore, Kubernetes deploys and runs containers: Hello, Docker, my old friend!
 
-Actually, this is not 100% right. In Kubernete's terms, you deploy `_Pods_`, with a pod consisting of one or more containers.
+Actually, this is not 100% right. In Kubernetes' terms, you deploy `_Pods_`, with a pod consisting of one or more containers.
 
 Alright, we got `_pods_` running on `_nodes_`, but who controls those nodes and how and where do you decide what to run on these `_nodes_`?
 
@@ -161,11 +161,9 @@ The gold standard ('tm), run multiple clusters across multiple private and/or pu
 
 Web UI...Amazon dashboard...Goolg eCloud Console...
 
-
 === Is that it?
 
 this is a quick summary for developers...the truth is...enormous complexity....books on oreilly.......more pages than you can imagine to read
-
 
 === How does Kubernetes do all this? YAML!
 
