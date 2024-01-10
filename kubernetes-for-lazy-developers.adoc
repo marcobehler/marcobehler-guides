@@ -131,7 +131,7 @@ Let's do a quick Kubernetes Concept 101.
 
 TODO GRAPH UML control pane workload..
 
-=== Kubernetes 102: (Worker) Nodes
+=== Kubernetes 101: (Worker) Nodes
 
 Your software (or _workload_ in Kubernetes terms) has to run somewhere, be it a virtual or physical machine. Kubernetes call this somewhere `_Nodes_`.
 
@@ -153,17 +153,19 @@ Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one
 
 Take your nodes and your control pane, and you have a cluster.
 
-Take multiple clusters e.g. to separate dev, test & production environments or maybe teams/projects/application types.
+Take multiple clusters and you can separate your dev, test & production environments or maybe even teams, projects or different application types.
 
-The gold standard ('tm), run multiple clusters across multiple private and/or public cloud platforms: Multi-Cloud Kubernetes!
+Take it even further, and [line-through]#try going# go multi-cloud Kubernetes, running multiple clusters across different private and/or public cloud platforms (Congratulations, what you have achieved is not for the faint of heart)
 
 === Kubernetes 101: Addons
 
-Web UI...Amazon dashboard...Goolg eCloud Console...
+There are also a fair amount of https://kubernetes.io/docs/concepts/overview/components/#web-ui-dashboard[Kubernetes add-ons]. Most importantly for the developer, there is a https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Web UI/Dashboard] which you can use to essentially manage your cluster, deploy your containerized applications etc. If you're not self-hosting your Kubernetes setup, you'd simply use whatever UI your cloud vendors, like https://cloud.google.com/gcp/[Google Cloud], https://aws.amazon.com/eks/[AWS] or the many others provide.
 
-=== Is that it?
+=== Please, let's stop with the Kubernetes 101
 
-this is a quick summary for developers...the truth is...enormous complexity....books on oreilly.......more pages than you can imagine to read
+Make no mistake about it. Those four 101-sections above will (hopefully) give you enough of a mental model to get started with Kubernetes as a -developer-, i.e. an end-user.
+
+On the other hand, you might want to enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day!
 
 === How does Kubernetes do all this? YAML!
 
