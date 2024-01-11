@@ -181,23 +181,137 @@ Those four 101-sections above will (hopefully) give you enough of a mental model
 
 Truth to be told, you'll be shocked if you enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day! The good part: you, as a developer, don't have to care about most of that's written in these books, teaching you how to setup, maintain and manage your clusters, though being aware of the sheer complexity of all of this helps.
 
-=== Wait, we haven't talked about YAML yet?
+=== What do I need to do to see all of this in action?
 
-YAML, YAML, YAML...have a deployment...tell Kubernetes: Go.
+* A Kubernetes installation (we'll talk about that a bit later in more detail)
+* YAML, YAML, YAML Files
+* A tool to interact with your Kubernetes cluster: `_Kubectl_`
 
-== How can I apply this YAML file?
+=== Where do I get kubectl
 
-kubectl...
+Check out https://kubernetes.io/docs/tasks/tools/[this link], which lists various ways of installing kubectl for your specific operating system.
 
-=== Kubectl primer
+=== What do I need for kubectl to work?
 
-What is kubectl?
+You'll need a config file, a so-called `_kubeconfig file_`, which lets you access your Kubernetes cluster.
 
-what can kubectl do? apply ? ssh? other stuff?
+By default, that file is located at `_~/.kube/config_`. It is also important to note that this config file is also being read in by your favorite IDE, like https://www.jetbrains.com/idea/[IntelliJ IDEA], to properly set up its Kubernetes features.
 
-=== Meet kubeconfig file
+=== Where do I get the kubeconfig file from?
 
-kubectl works against a clste.r.....namepsaces..
+If you are using a managed Kubernetes installation (https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html[EKS], https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl[GKE], https://gist.github.com/dcasati/c71243c1a010993d9f281e0f06dc839d[AKS]), check out the corresponding documentation pages. Yes, just click the links, I did all the work linking to the correct pages. Simply put, you'll use their CLI tools to generate the file for you.
+
+If you installed e.g. https://minikube.sigs.k8s.io/docs/start/[Minikube] locally, it will create the kubeconfig file for you.
+
+If you can ssh into your master node, run a
+
+`_cat /etc/kubernetes/admin.conf_` or cat `_~/.kube/config_`
+
+=== Anything else I need to know about the kubeconfig file?
+
+A kubeconfig file is good, old YAML, and there are many things it can contain (clusters, users, contexts). For the inclined, https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/[check out the official documentation]. For now we can ignore users and contexts and live with the simplification that the kubeconfig file contains the cluster(s) you can connect to, e.g. `_development_` or `_test_`.
+
+Here's an example kubeconfig file, taken https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/[from the official Kubernetes documentation].
+
+[source,yaml]
+----
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: fake-ca-file
+    server: https://1.2.3.4
+  name: development
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://5.6.7.8
+  name: test
+contexts:
+- context:
+    cluster: development
+    namespace: frontend
+    user: developer
+  name: dev-frontend
+- context:
+    cluster: development
+    namespace: storage
+    user: developer
+  name: dev-storage
+- context:
+    cluster: test
+    namespace: default
+    user: experimenter
+  name: exp-test
+current-context: ""
+kind: Config
+preferences: {}
+users:
+- name: developer
+  user:
+    client-certificate: fake-cert-file
+    client-key: fake-key-file
+- name: experimenter
+  user:
+    # Documentation note (this comment is NOT part of the command output).
+    # Storing passwords in Kubernetes client config is risky.
+    # A better alternative would be to use a credential plugin
+    # and store the credentials separately.
+    # See https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins
+    password: some-password
+    username: exp
+----
+
+=== Kubectl 101
+
+What can you now do with Kubectl? Remember, at the beginning we said your goal is to have a pod (n+ containers), and schedule it (run them) on a node (server).
+
+And the way is to feed yaml files (yay) with the desired state of your cluster into kubectl, and it will happily set your cluster into the desired state.
+
+
+=== Pod Manifests
+
+You could, for example, create a file called `_marcocodes-pod.yaml_` that looks like this:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: marcocodes
+spec:
+  containers:
+    - image: gcr.io/marco/marcocodes:1.4
+      name: marcocodes
+      ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+----
+
+The desired state is to have a pod, based on a dockerimage `_marcocodes:1.4_` and being able to access it on port 8080 via http.
+
+If we now run the following command....
+
+[source,console]
+----
+ kubectl apply -f marcocodes-pod.yaml
+----
+...then our yaml file will be submitted to the https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/[Kubernetes API Server] and eventually our Kubernetes system will schedule that Pod to run on a healthy, viable node in our cluster.
+
+We managed to schedule a single, static, one-off pod. Where is the advantage to `_docker run -d --publish 8080:8080 gcr.io/marco/marcocodes:1.4_`? In this example, there is none.
+
+That's why we unfortunately need to learn two more concepts: `_ReplicaSets_` and `_Deployments_
+
+=== ReplicaSets
+
+Problem: Auto scaling etc...multiple pods
+
+=== Deployments
+
+Problem: version number...
+
+=== Common Kubectl Commands
+
+TODO: Neatly grouped/sorted list of commonly used kubectl command for developers.
 
 
 === Load Balancing
@@ -206,6 +320,7 @@ kubectl works against a clste.r.....namepsaces..
 
 === Monitoring
 
+In general, the right question to ask yourself when designing Pods is “Will these containers work correctly if they land on different machines?” If the answer is no, a Pod is the correct grouping for the containers. If the answer is yes, using multiple Pods is probably the correct solution. In the example at the beginning of this chapter, the two containers interact via a local filesystem. It would be impossible for them to operate correctly if the containers were scheduled on different machines.
 
 Self-healing
 Auto scaling
