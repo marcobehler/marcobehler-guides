@@ -305,22 +305,107 @@ That's why we unfortunately need to learn two more Kubernetes concepts: `_Replic
 
 === ReplicaSets
 
+What if you want to have redundant instances of your application? What if you want to be able to scale up or shard your application?
+
+Then, instead of endlessly creating Pod manifests, you'd use Kubernete's `_ReplicaSets_`.
+
+Let's have a look at a `_marcocodes-replica.yaml_` file, that defines such a minimal ReplicaSet.
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  labels:
+    app: kuard
+    version: "2"
+  name: kuard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kuard
+      version: "2"
+  template:
+    metadata:
+      labels:
+        app: kuard
+        version: "2"
+    spec:
+      containers:
+        - name: kuard
+          image: "gcr.io/kuar-demo/kuard-amd64:green"
+----
+
+
+How many repliaces? What is the selector?
+what is the template? saying what docker container is being started...
+reconcilliation loop..constantly checking what's up ..do i need to scale up or down?
+
+[source,console]
+----
+kubectl apply -f kuard-rs.yaml
+----
+
 Problem: Auto scaling etc...multiple pods
 
 === Deployments
 
+we created pods...replicasetse....but all with a static version number....
+
+what about deployments? and being able to rollout new stuff?
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuard
+  labels:
+    run: kuard
+spec:
+  selector:
+    matchLabels:
+      run: kuard
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: kuard
+    spec:
+      containers:
+      - name: kuard
+        image: gcr.io/kuar-demo/kuard-amd64:blue
+----
+
 Problem: version number...
+
+You might have guessed correctly....kubectl create -f kuard-deployment.yaml
+
+
+deployment is controlling a replicaset..
+
+
+udpating a containre image: change the yaml file...
+
+rollout....
+
+
+doesn't matter if using kubernetes or some other crap..you need to make sure this wors..
+
+=== Self-Healing: Lie
+
+being able to restart a pod..yes....it's functionality that has existed in your good old Linux system forever...systemd..whatever
+
+=== Load Balancing
+
+=== Monitoring
+
+Managing multiple versions of your service
 
 === Common Kubectl Commands
 
 TODO: Neatly grouped/sorted list of commonly used kubectl command for developers.
-
-
-=== Load Balancing
-
-=== Self-Healing: Lie
-
-=== Monitoring
 
 In general, the right question to ask yourself when designing Pods is “Will these containers work correctly if they land on different machines?” If the answer is no, a Pod is the correct grouping for the containers. If the answer is yes, using multiple Pods is probably the correct solution. In the example at the beginning of this chapter, the two containers interact via a local filesystem. It would be impossible for them to operate correctly if the containers were scheduled on different machines.
 
