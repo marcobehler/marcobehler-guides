@@ -1,6 +1,6 @@
 = Kubernetes for Lazy Developers
 Marco Behler
-2023-11-16
+2024-11-11
 :page-layout: layout-guides
 :page-image: "TODO"
 :page-description: TODO
@@ -20,55 +20,64 @@ If you're a developer who has either never used Kubernetes before or wants to br
 
 === How did we get here?
 
-Many developers I've met throughout my career, didn't necessarily care about the "now that I've written the code, it also needs to be run somewhere"-part of application development.
+Many developers I've met throughout my career, didn't necessarily care about the "now that I've written the code, it also needs to be run somewhere"-part of your application's life.
 
-What does running an application actually mean? It depends a bit on your programming language ecosystem, but in terms of Java and modern web applications, you literally compile all your source in one, single, executable .jar file, that you can run with a simple command.
+Let's start slowly. What does running an application actually mean?
+
+It depends a bit on your programming language ecosystem, but, for example, in terms of Java and modern web applications, you literally compile all your source in one, single, executable .jar file, that you can run with a simple command.
 
 [source,java]
 ----
 java -jar myNewAIStartup.jar
 ----
 
-Yes, there is additionally very likely an `_application.properties_` file involved, to set e.g. production database credentials, but the command above is literally it: If you're deploying your application on bare metal, in a VM, in a Docker container, with or without Kubernetes, or your Java-powered toaster (ok, I made that one up).
+For production deployments, you typically also want some sort of properties, to set e.g. database credentials or other secrets. The easiest way in above's Java Spring Boot case would be to have an `_application.properties_` file, but you can also go crazy with external secret management services.
+
+In any case, the command above is literally all you need to run to deploy your application - doesn't matter if you're deploying on bare metal, a VM, a Docker container, with or without Kubernetes or maybe even your Java-powered toaster.
 
 === Running just one command can't be it. Where is the catch?
 
 Much has been written online about the issues that can arise when deploying your application:
 
-* What if there are version incompatibilities between my DEV environment and my PRD environment?
-* What if certain, needed OS packages are missing?
-* What if we're not going to deploy our application to a cloud service anymore, but a submarine?
+* What if there are library/OS/something version incompatibilities between my DEV environment and my PRD environment?
+* What if certain required OS packages are missing?
+* What if we don't want deploy our application to a cloud service anymore, but a submarine?
 
-Interestingly, your mileage with these problems will vary _a lot_ depending on what programming language ecosystem you're using, a topic that is often ignored in online discussions.
+Your mileage with these problems will vary _a lot_ depending on what programming language ecosystem you're using - a topic that is often ignored in online discussions.
 
-With pure Java web-applications, the issues mentioned above (apart from the submarine, of course), are essentially non-issues. You install a JDK, which is https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[insanely backwards compatible], on a server/vm/container, and run `_java -jar_`.
+With pure Java web-applications, the issues mentioned above (excluding the submarine), are, for a large part, non-issues. You https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[install a JDK] on a server/vm/container/submarine, run `_java -jar_` and live happily ever after.
 
-With PHP, Python, or Ruby the picture looks different and you could/can easily run into version incompatibilities across your dev, staging or prod environments. Hence, people yearned for a solution to rid them of these pains: Containers. (*Side-Note)
-
-// TODO Site-Note : all these concerns aren't new....applicatikon servers etc.......schnittstellen
+With PHP, Python, ahem, Node the picture looks different and you could/can easily run into version incompatibilities across your dev, staging or prod environments. Hence, people yearned for a solution to rid them of these pains: Containers.
 
 === Hail to the Docker!
 
 Chances are high that you already know what Docker is and how to work with it. (If not and you want to see a Docker specific guide, please post a comment down below! More demand -> Faster publication). The short summary is:
 
-* You build your deployable, e.g. the `_jar_` file.
-* You build a new Docker image, which contains your `_jar_` file.
-* The Docker Image also contains _all_ additional software and configuration options needed to run.
+* You build your source code into a deployable, e.g. the `_jar_` file.
+* You additionally build a new Docker image, with your `_jar_` file baked in.
+* Said Docker image also contains _all_ additional software and configuration options needed to be able to run successfully.
 
--> You will now deploy your Docker image (and run it as a Docker container), instead of your .jar file. The beauty is: As long as you have Docker installed on the target machine you can run any Docker image you want (and you have Kernel compatibility between your host OS and the Docker container ).
+-> Instead of deploying your .jar file, you'll now deploy your Docker image and run a Docker container.
+
+The beauty of this is: As long as you have Docker installed on the target machine (and you have Kernel compatibility between your host OS and the Docker container ) you can run any Docker image you want.
 
 [source,console]
 ----
 docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
+
+// yay, your application is deployed
+
+// This will start a Docker container on basis of the `_mynewaistartup_` Docker image.
+// That image will, among other things, contain your e.g. -jar file,
+// a web application which runs on port 8080, as well as instructions on how to run it.
+// Hint: These instructions are `_java -jar mynewaistartup.jar_`.
 ----
 
-This will start a Docker container on basis of the `_mynewaistartup_` Docker image. That image will, among other things, contain your e.g. -jar file, a web application which runs on port 8080, as well as instructions on how to run it. Hint: These instructions are `_java -jar mynewaistartup.jar_`.
-
-=== What do we do with these Docker images?
+=== What does 'deploying' Docker images mean?
 
 You or your CI/CD server managed to bake your application into a Docker image. But how does that Docker image eventually end up on your target deployment server?
 
-You'll need to push your Docker image to a Docker registry, be that https://hub.docker.com/_/registry[dockerhub], https://aws.amazon.com/ecr/[Amazon ECR] or any of the other gazillion self-hosted container image registries, like https://docs.gitlab.com/ee/user/packages/container_registry/[Gitlab's], for example.
+You could theoretically save your Docker image as a .tar file, copy it onto your final server and load id there. But more realistically, you'd push your Docker image to a Docker registry, be that https://hub.docker.com/_/registry[dockerhub], https://aws.amazon.com/ecr/[Amazon ECR] or any of the other gazillion self-hosted container image registries, like https://docs.gitlab.com/ee/user/packages/container_registry/[Gitlab's], for example.
 
 Once your image made it to said registry, you can https://docs.docker.com/engine/reference/commandline/login/[login] to that registry on your targetserver.
 
@@ -84,7 +93,6 @@ And once you are logged in to your registry, your `_docker run_` will be able to
 docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
 
 //....
-
 SUCCESS!
 ----
 
@@ -112,7 +120,7 @@ volumes:
   logvolume01: {}
 ----
 
-Then you just run `_docker compose up_` and your whole _environment_ (consisting of all your separate services) will be started.
+Then you just run `_docker compose up_` and your whole _environment_ (consisting of all your separate services running in separate docker containers) will be started.
 
 While `_Docker Compose_` might be mainly known for quickly spinning up development or testing environments, it actually works really well for single host deployments as well.
 If your application...
@@ -127,6 +135,8 @@ If your application...
 
 Things get interesting if you want to start running hundreds, thousands (or a multiple of that) containers, if you don't care or don't want to know on what specific underlying hardware/box your containers will be running on, yet still want to be able to sensibly manage all of this. Kubernetes, to the rescue!
 
+(Note: Quite a while ago I read a Kubernetes book, where in the intro they specified a lower-bound number where Kubernetes makes sense and *I think* it started with hundreds to thousands, though I cannot find the exact book anymore.)
+
 Let's do a quick Kubernetes Concept 101.
 
 TODO GRAPH UML control pane workload..
@@ -137,35 +147,39 @@ Your software (or _workload_ in Kubernetes terms) has to run somewhere, be it a 
 
 Furthermore, Kubernetes deploys and runs containers: Hello, Docker, my old friend!
 
-Actually, this is not 100% right. In Kubernetes' terms, you deploy `_Pods_`, with a pod consisting of one or more containers.
+Actually, this is not 100% right. In Kubernetes' terms, you deploy (_schedule_) `_Pods_`, with a pod consisting of one or more containers.
 
 Alright, we got `_pods_` running on `_nodes_`, but who controls those nodes and how and where do you decide what to run on these `_nodes_`?
 
 === Kubernetes 101: Control Pane
 
-Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one_ component that controls your node (as opposed to the https://kubernetes.io/docs/concepts/overview/components/[roughly 947 components] it consists of):
+Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one_ component that controls your nodes (as opposed to the https://kubernetes.io/docs/concepts/overview/components/[roughly 947 components] it consists of). The control pane...
 
 * Let's [line-through]#run# _schedule_ your application, i.e. let's put a pod on a node.
-* Are your pods all in the desired state, e.g. responsive or does one of them need to be restarted?
-* Every engineer's dream: We need to finally scale (yay!), let's quickly spin up 5 more pods!
+* Check if all your pods are in the desired state, e.g. are they responsive or does one of them need to be restarted?
+* Fulfills every engineer's wet dream: We need to finally scale 10xfold, let's quickly spin up n-more pods!
 
 === Kubernetes 101: Clusters & Clouds
 
-Take your nodes and your control pane, and you have a cluster.
+Take multiple nodes and your control pane, and you have a cluster.
 
-Take multiple clusters and you can separate your dev, test & production environments or maybe even teams, projects or different application types.
+Take multiple clusters and you can separate your dev, test & production environments or maybe teams, projects or different application types - that's up to you.
 
-Take it even further, and [line-through]#try going# go multi-cloud Kubernetes, running multiple clusters across different private and/or public cloud platforms (Congratulations, what you have achieved is not for the faint of heart)
+Take it even further, and [line-through]#try going# go multi-cloud Kubernetes, running multiple clusters across different private and/or public cloud platforms (Congratulations! What you have achieved is not for the faint of heart)
 
 === Kubernetes 101: Addons
 
-There are also a fair amount of https://kubernetes.io/docs/concepts/overview/components/#web-ui-dashboard[Kubernetes add-ons]. Most importantly for the developer, there is a https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Web UI/Dashboard] which you can use to essentially manage your cluster, deploy your containerized applications etc. If you're not self-hosting your Kubernetes setup, you'd simply use whatever UI your cloud vendors, like https://cloud.google.com/gcp/[Google Cloud], https://aws.amazon.com/eks/[AWS] or the many others provide.
+There are also a fair amount of https://kubernetes.io/docs/concepts/overview/components/#web-ui-dashboard[Kubernetes add-ons].
+
+Most importantly for the developer, there is a https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Web UI/Dashboard] which you can use to essentially manage your cluster, deploy your containerized applications etc.
+
+If you're not self-hosting your Kubernetes setup, you'd simply use whatever UI your cloud vendors, like https://cloud.google.com/gcp/[Google Cloud], https://aws.amazon.com/eks/[AWS] or the many others provide.
 
 === Please, let's stop with the Kubernetes 101
 
-Make no mistake about it. Those four 101-sections above will (hopefully) give you enough of a mental model to get started with Kubernetes.
+Those four 101-sections above will (hopefully) give you enough of a mental model to get started with Kubernetes and we'll leave it at that with the concepts.
 
-On the other hand, you might want to enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day! The good thing: you, as a developer, don't have to worry about most of what's written in those books (though being aware of the sheer setup complexity definitely helps)
+Truth to be told, you'll be shocked if you enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day! The good part: you, as a developer, don't have to care about most of that's written in these books, teaching you how to setup, maintain and manage your clusters, though being aware of the sheer complexity of all of this helps.
 
 === Wait, we haven't talked about YAML yet?
 
