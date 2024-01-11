@@ -297,9 +297,11 @@ If we now run the following command....
 ----
 ...then our yaml file will be submitted to the https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/[Kubernetes API Server] and eventually our Kubernetes system will schedule that Pod to run on a healthy, viable node in our cluster.
 
-We managed to schedule a single, static, one-off pod. Where is the advantage to `_docker run -d --publish 8080:8080 gcr.io/marco/marcocodes:1.4_`? In this example, there is none.
+We managed to schedule a single, static, one-off pod. Where is the advantage to just running `_docker run -d --publish 8080:8080 gcr.io/marco/marcocodes:1.4_`?
 
-That's why we unfortunately need to learn two more concepts: `_ReplicaSets_` and `_Deployments_
+Well, for now, there is none.
+
+That's why we unfortunately need to learn two more Kubernetes concepts: `_ReplicaSets_` and `_Deployments_
 
 === ReplicaSets
 
