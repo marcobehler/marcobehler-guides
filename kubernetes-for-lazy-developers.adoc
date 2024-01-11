@@ -199,8 +199,17 @@ what can kubectl do? apply ? ssh? other stuff?
 
 kubectl works against a clste.r.....namepsaces..
 
+
+=== Load Balancing
+
 === Self-Healing: Lie
 
+=== Monitoring
+
+
+Self-healing
+Auto scaling
+Resource management
 self healing: systemd oder supervisord
 
 pods
