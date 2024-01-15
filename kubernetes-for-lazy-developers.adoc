@@ -575,6 +575,10 @@ Yet to come. Ssend in a PR btw if you don't like something
 
 
 
+== References
+
+Learning Helm
+Kubernetes Getting Started
 
 === TODO
 
