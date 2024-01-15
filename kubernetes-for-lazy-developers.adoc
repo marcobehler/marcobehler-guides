@@ -464,57 +464,49 @@ udpating a containre image: change the yaml file...
 
 rollout....
 
+=== Rolling Updates: The devil....?
 
-=== Ingress
+As always, the devil is in the details. Rolling updates have been done many moons ago already, before Kubernetes existed, even if it was just batch scripts firing SSH commands.
 
-doesn't matter if using kubernetes or some other crap..you need to make sure this wors..
+The issue, bluntly put, is not so much about being able to shut down and spin up new instances, but that for a short while (during the deployment) your app essentially needs to gracefully support two versions of the application - which is always interesting as soon as a database is involved or if there have been major refactorings in APIs between frontend/backend for example.
 
-=== Self-Healing: Lie
+The real issue here is not to have
 
-being able to restart a pod..yes....it's functionality that has existed in your good old Linux system forever...systemd..whatever
+=== Side-Note: Self-Healing
 
-=== Load Balancing
+On a similar note, that same is true for the term _self-healing_. What Kubernetes can do, is to take an unresponsive pod, kill it, and schedule a new one. That is also functionality, which has in one form or another existed endlessly (TODO systemd comparison, across multiple nodes etc). What Kubernetes _cannot_ do is automatically take a botched database migration, which leads to application errors and then magically _self-heal_ the cluster.
 
-=== Monitoring
+It is just my personal impression that talk about _self-healing_ systems often insinuates the latter (maybe among management), whereas it is much more basic functionality.
 
-Managing multiple versions of your service
+=== Load Balancing: Ingress
 
-=== Common Kubectl Commands
+So far, we talked about dynamically spawning up pods, but never about how network traffic actually reaches your applications. With good, old deployments, you'll have an Nginx or Apache web server, usually configured for some sort of "virtual hosting". As this is a bit too static for Kubernetes, there's the concept of `_Ingress_`, i.e.  HTTP-based load-balancing for Kubernetes.
 
-TODO: Neatly grouped/sorted list of commonly used kubectl command for developers.
+At the end of the day, you'll need to install an Ingress controller (there is no standard one being built into Kubernetes), which will do the load-balancing for you .Options are plentyful: On platforms like AWS, you'd simply use ELB, if you go bare-metal Kubernetes you could use https://projectcontour.io/[Contour], etc.
 
-In general, the right question to ask yourself when designing Pods is “Will these containers work correctly if they land on different machines?” If the answer is no, a Pod is the correct grouping for the containers. If the answer is yes, using multiple Pods is probably the correct solution. In the example at the beginning of this chapter, the two containers interact via a local filesystem. It would be impossible for them to operate correctly if the containers were scheduled on different machines.
+=== Secrets Management
 
-Self-healing
-Auto scaling
-Resource management
-self healing: systemd oder supervisord
+Apart from a myriad of other things Kubernetes can do, you can also use it to store secrets (think database or API credentials).
 
-pods
-wie
-run containers.....healthchecks...self healing....what does that even mean? ubuntu/upstart since the break of dawn: restart hanging processes
+By default, they're being stored unencrypted, hence the need to follow the _Safely use Secrets_ section https://kubernetes.io/docs/concepts/configuration/secret/[on this page], or even alltogether plugging in an external Secrets store, from AWS, GCP's and Azure's solutions, to https://github.com/hashicorp/vault-csi-provider[HashiCorp's Vault].
 
-=== What else can Kubernetes do for me? Secrets Management
+=== Enough concepts: Don't these YAML files become a mess?
 
-https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/
+The short answer: potentially. But you're also a developer and not necessarily the one maintaining these files.
 
-=== Don't these YAML files become a mess?
+It helps to use your IDEs support, https://www.jetbrains.com/help/idea/kubernetes.html[IntelliJ IDEA] in my case, to get coding assistance support for Helm charts, Kustomize files et al. Oh, we haven't talked about them yet. Let's do that.
 
-Kustomize / Helm Charts + IDE support
+TBD link IntelliJ video
 
-IntelliJ IDEA support
+=== What are Helm Charts?
 
-https://www.jetbrains.com/help/idea/kubernetes.html  (IntelliJ IDEA Ultimate)
-
-[link video]
-
-=== what are helm charts...
-
-=== what is kustomize?
+=== What is Kustomize?
 
 === What is Terraform?
 
 === DO I really need all of this?
+
+https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/
 
 cgroups....resources....limitation......real life -> 0,5 CPUS.....in development needing the latest macbook pro 64 gig
 
@@ -563,6 +555,14 @@ reference kubernetes book...2016 devops...study...would like to have a closer lo
 Answered: K8s as an abbreviation results from counting the eight letters between the "K" and the "s". https://kubernetes.io/docs/concepts/overview/#:~:text=rapidly%20growing%20ecosystem.-,Kubernetes%20services%2C%20support%2C%20and%20tools%20are%20widely%20available.,the%20Kubernetes%20project%20in%202014[(source)].
 
 Enough with random, boring facts no one will remember, let's start at the very beginning.
+
+
+=== Common Kubectl Commands
+
+TODO: Neatly grouped/sorted list of commonly used kubectl command for developers.
+
+In general, the right question to ask yourself when designing Pods is “Will these containers work correctly if they land on different machines?” If the answer is no, a Pod is the correct grouping for the containers. If the answer is yes, using multiple Pods is probably the correct solution. In the example at the beginning of this chapter, the two containers interact via a local filesystem. It would be impossible for them to operate correctly if the containers were scheduled on different machines.
+
 
 
 === Fin
