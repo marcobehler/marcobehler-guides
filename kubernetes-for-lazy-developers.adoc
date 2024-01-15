@@ -578,6 +578,8 @@ Yet to come. Ssend in a PR btw if you don't like something
 
 === TODO
 
+For example, the WordPress CMS system can be run inside of Kubernetes. But typically it would need at least a Deployment (for the WordPress server), a ConfigMap for configuration and probably a Secret (to keep passwords), a few Service objects, a StatefulSet running a database, and a few role-based access control (RBAC) rules. Already, a Kubernetes description of a basic WordPress site would span thousands of lines of YAML. At the very core of Helm is this idea that all of those objects can be packaged to be installed, updated, and deleted together.
+
 
 In a reconciliation loop, the scheduler says “here is the user’s desired state. Here is the current state. They are not the same, so I will take steps to reconcile them.” The user wants storage for the container. Currently there is no storage attached. So Kubernetes creates a unit of storage and attaches it to the container. The container needs a public network address. None exists. So a new address is attached to the container. Different subsystems in Kubernetes work to fulfill their individual part of the user’s overall declaration of desired state.
 
