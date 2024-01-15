@@ -276,11 +276,11 @@ You could, for example, create a file called `_marcocodes-pod.yaml_` that looks 
 apiVersion: v1
 kind: Pod
 metadata:
-  name: marcocodes
+  name: marcocodes-web
 spec:
   containers:
     - image: gcr.io/marco/marcocodes:1.4
-      name: marcocodes
+      name: marcocodes-web
       ports:
         - containerPort: 8080
           name: http
@@ -298,7 +298,7 @@ If we now run the following command....
 ...then our yaml file will be submitted to the https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/[Kubernetes API Server] and eventually our Kubernetes system will schedule that Pod to run on a healthy, viable node in our cluster.
 
 We managed to schedule a single, static, one-off pod. Where is the advantage to just running `_docker run -d --publish 8080:8080 gcr.io/marco/marcocodes:1.4_`?
-
+›
 Well, for now, there is none.
 
 That's why we unfortunately need to learn two more Kubernetes concepts: `_ReplicaSets_` and `_Deployments_
@@ -307,7 +307,7 @@ That's why we unfortunately need to learn two more Kubernetes concepts: `_Replic
 
 What if you want to have redundant instances of your application? What if you want to be able to scale up or shard your application?
 
-Then, instead of endlessly creating Pod manifests, you'd use Kubernete's `_ReplicaSets_`.
+Then, instead of endlessly creating Pod manifests and manually spinning up one-off pods, you'd use Kubernetes' `_ReplicaSets_`.
 
 Let's have a look at a `_marcocodes-replica.yaml_` file, that defines such a minimal ReplicaSet.
 
@@ -316,38 +316,115 @@ Let's have a look at a `_marcocodes-replica.yaml_` file, that defines such a min
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
-  labels:
-    app: kuard
-    version: "2"
-  name: kuard
+  name: marcocodes-web
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: kuard
-      version: "2"
+      app: marcocodes-web
+      version: "3.85"
   template:
     metadata:
       labels:
-        app: kuard
-        version: "2"
+        app: marcocodes-web
+        version: "3.85"
     spec:
       containers:
-        - name: kuard
-          image: "gcr.io/kuar-demo/kuard-amd64:green"
+        - name: marcocodes-web
+          image: "gcr.io/marco/marcocodes:3.85"
 ----
 
+Let's step through this one by one.
 
-How many repliaces? What is the selector?
-what is the template? saying what docker container is being started...
-reconcilliation loop..constantly checking what's up ..do i need to scale up or down?
+[source,yaml,indent=0,role=tooth]
+----
+kind: ReplicaSet
+----
+
+In this .yaml file we want to create a `_ReplicaSet_`, not a `_Pod_ or another so-called Kubernetes `_object_`.
+
+[source,yaml,indent=0,role=tooth]
+----
+metadata:
+  name: marcocodes-web
+----
+
+We're giving our `_ReplicaSet_` the name `_marcocodes-web_` (and that name is unique in your cluster, for the samed type of resource).
+
+[source,yaml,indent=0,role=tooth]
+----
+spec:
+  replicas: 2
+----
+
+Here's the meat: We want to have 2 replicas == pods running at any given time. If we put in 10 here, Kubernetes would make sure to have 10 running at the same time.
+
+[source,yaml,indent=0,role=tooth]
+----
+ selector:
+    matchLabels:
+      app: marcocodes-web
+      version: "3.85"
+----
+What is the `_selector_` bit for? We'll actually skip that for a minute, look at the `_template_` section first and then come back to it again.
+
+[source,yaml,indent=0,role=tooth]
+----
+template:
+    metadata:
+      labels:
+        app: marcocodes-web
+        version: "3.85"
+    spec:
+      containers:
+        - name: marcocodes-web
+          image: "gcr.io/marco/marcocodes:3.85"
+----
+
+We know we want to have 2 replicas running, but *what* replicas, exactly? Hence, we'll need to define a template for the pods to boot up.
+
+[source,yaml,indent=0,role=tooth]
+----
+spec:
+  containers:
+    - name: marcocodes-web
+      image: "gcr.io/marco/marcocodes:3.85"
+----
+
+We're telling Kubernetes that the pod will consist of only one container, called marcocodes-web, with a specific Docker image from the gcr.io repository.
+
+[source,yaml,indent=0,role=tooth]
+----
+metadata:
+  labels:
+    app: marcocodes-web
+    version: "3.85"
+----
+
+We're simply adding some `_app_` and `_version_` metadata to our created pods. And now, the selector bit above might start making sense.
+
+[source,yaml,indent=0,role=tooth]
+----
+ selector:
+    matchLabels:
+      app: marcocodes-web
+      version: "3.85"
+----
+
+When the ReplicaSet is created (or the so-called _reconcilliation loop_ trying to achieve its desired state), it fetches a Pod listing from the Kubernetes API and _filters_ the results by labels. In this case, pods who have the `_app_ set `_marcocodes-web_` and `_version_` to `_3.85_`. And depending on the number of pods being returned, Kubernetes will then spin up or down additional replicas.
+
+That's all there is to it.
 
 [source,console]
 ----
 kubectl apply -f kuard-rs.yaml
 ----
 
-Problem: Auto scaling etc...multiple pods
+As you might have guessed, simply feeding this .yaml file to the `_apply_ command of kubectl will do its job.
+
+`_ReplicaSets_` are _almost_ what you'd like to have, but they come with a problem: They are tied to a specific version of your container images and those are actually not really expected to change. And ReplicaSets also don't really help you with the _rolling out process_ (think, zero downtime) of your software.
+
+Hence we need a new concept to help us manage releases of new versions, meet `_Deployments_`.
 
 === Deployments
 
@@ -382,14 +459,13 @@ Problem: version number...
 
 You might have guessed correctly....kubectl create -f kuard-deployment.yaml
 
-
 deployment is controlling a replicaset..
-
-
 udpating a containre image: change the yaml file...
 
 rollout....
 
+
+=== Ingress
 
 doesn't matter if using kubernetes or some other crap..you need to make sure this wors..
 
