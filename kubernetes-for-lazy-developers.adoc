@@ -579,7 +579,7 @@ Yet to come. Ssend in a PR btw if you don't like something
 === TODO
 
 
-
+In a reconciliation loop, the scheduler says “here is the user’s desired state. Here is the current state. They are not the same, so I will take steps to reconcile them.” The user wants storage for the container. Currently there is no storage attached. So Kubernetes creates a unit of storage and attaches it to the container. The container needs a public network address. None exists. So a new address is attached to the container. Different subsystems in Kubernetes work to fulfill their individual part of the user’s overall declaration of desired state.
 
 nenn mir EIN docker image das du OHNE ZU WISSEN WAS ES TUT einfach wo deployen kannst
 du musst auf dockerhub die environment variables lesen
@@ -587,3 +587,18 @@ du mussst wissen welche volumes und shit du bereitstellen musst
 es ist also nicht "doppelklick app.exe"
 
 rl problem: too little reosurces, killing health-checks, oom, architects, etc.
+
+
+ volumes: 1
+    - name: my-configuration
+      configMap:
+        name: configuration-data 2
+    containers:
+    - image: "nginx:latest"
+      name: example-nginx
+      env: 3
+        - name: BACKGROUND_COLOR 4
+          valueFrom:
+            configMapKeyRef:
+                name: configuration-data 5
+                key: backgroundColor 6
