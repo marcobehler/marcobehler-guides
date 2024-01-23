@@ -39,13 +39,13 @@ In any case, the command above is literally all you need to run to deploy your a
 
 Much has been written online about the issues that can arise when deploying your application:
 
-* What if there are library/OS/something version incompatibilities between my DEV environment and my PRD environment?
+* What if there are library/OS/infrastructure/something version incompatibilities between my DEV environment and my PRD environment?
 * What if certain required OS packages are missing?
 * What if we don't want deploy our application to a cloud service anymore, but a submarine?
 
 Your mileage with these problems will vary _a lot_ depending on what programming language ecosystem you're using - a topic that is often ignored in online discussions.
 
-With pure Java web-applications, the issues mentioned above (excluding the submarine), are, for a large part, non-issues. You https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[install a JDK] on a server/vm/container/submarine, run `_java -jar_` and live happily ever after.
+With pure Java web-applications, the issues mentioned above (excluding the submarine or more sensible infrastructure parts like your database), are, for a large part, non-issues. You https://www.marcobehler.com/guides/a-guide-to-java-versions-and-features[install a JDK] on a server/vm/container/submarine, run `_java -jar_` and live happily ever after.
 
 With PHP, Python, ahem, Node the picture looks different and you could/can easily run into version incompatibilities across your dev, staging or prod environments. Hence, people yearned for a solution to rid them of these pains: Containers.
 
@@ -614,7 +614,7 @@ In a reconciliation loop, the scheduler says “here is the user’s desired sta
 
 nenn mir EIN docker image das du OHNE ZU WISSEN WAS ES TUT einfach wo deployen kannst
 du musst auf dockerhub die environment variables lesen
-du mussst wissen welche volumes und shit du bereitstellen musst
+du mussst wissen welche volumes und shit du bereit˚stellen musst
 es ist also nicht "doppelklick app.exe"
 
 rl problem: too little reosurces, killing health-checks, oom, architects, etc.
