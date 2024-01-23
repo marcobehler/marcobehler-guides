@@ -450,85 +450,90 @@ Hence we need a new concept to help us manage releases of new versions, meet `_D
 
 === Deployments
 
-we created pods...replicasetse....but all with a static version number....
-
-what about deployments? and being able to rollout new stuff?
+Meet `_Deployments_`, which are used to manage `_ReplicaSets_` (wow!).
 
 [source,yaml]
 ----
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: kuard
-  labels:
-    run: kuard
+metadata: "ignore for now"
+  # ...
 spec:
-  selector:
-    matchLabels:
-      run: kuard
-  replicas: 1
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector: "ignore for now"
+    # ...
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
   template:
-    metadata:
-      labels:
-        run: kuard
-    spec:
-      containers:
-      - name: kuard
-        image: gcr.io/kuar-demo/kuard-amd64:blue
+     "ignore for now"
+    # ...
 ----
 
-Problem: version number...
+There are an additional 92387 YAML key-value pairs you'll need to learn for Deployments, and we're already quite long into this article. The gist of it is: Kubernetes allows you to have different software rollout strategies (`_rollingUpdate_` or `_recreate_`).
 
-You might have guessed correctly....kubectl create -f kuard-deployment.yaml
+* _Recreate_ will kill all your pods with the old version and re-create them with a new version: your users will experience downtime
+* _RollingUpdate_ will perform the update while still serving traffic through old pods, and is thus generally preferred.
 
-deployment is controlling a replicaset..
-udpating a containre image: change the yaml file...
-
-rollout....
-
-=== Rolling Updates: The devil....?
+=== Rolling Updates: Too Good To Be True
 
 As always, the devil is in the details. Rolling updates have been done many moons ago already, before Kubernetes existed, even if it was just batch scripts firing SSH commands.
 
-The issue, bluntly put, is not so much about being able to shut down and spin up new instances, but that for a short while (during the deployment) your app essentially needs to gracefully support two versions of the application - which is always interesting as soon as a database is involved or if there have been major refactorings in APIs between frontend/backend for example.
+The issue, bluntly put, is not so much about being able to shut down and spin up new instances of your application, but that for a short while (during the deployment) your app essentially needs to gracefully support two versions of the application - which is always interesting as soon as a database is involved or if there have been major refactorings in APIs between frontend/backend, for example.
 
-The real issue here is not to have
+So, beware of the marketing materials, selling you easy rolling updates - their real challenge has nothing to do with Kubernetes.
 
 === Side-Note: Self-Healing
 
-On a similar note, that same is true for the term _self-healing_. What Kubernetes can do, is to take an unresponsive pod, kill it, and schedule a new one. That is also functionality, which has in one form or another existed endlessly (TODO systemd comparison, across multiple nodes etc). What Kubernetes _cannot_ do is automatically take a botched database migration, which leads to application errors and then magically _self-heal_ the cluster.
+On a similar note, that same is true for the term _self-healing_. What Kubernetes can do, is execute health-checks and then take an unresponsive pod, kill it, and schedule a new one. That is also functionality, which has in one form or another existed endlessly (TODO systemd comparison, across multiple nodes etc). What Kubernetes _cannot_ do is automatically take a botched database migration, which leads to application errors and then magically _self-heal_ the cluster.
 
 It is just my personal impression that talk about _self-healing_ systems often insinuates the latter (maybe among management), whereas it is much more basic functionality.
 
-=== Load Balancing: Ingress
+=== Service Discovery, Load Balancing & Ingress
 
-So far, we talked about dynamically spawning up pods, but never about how network traffic actually reaches your applications. With good, old deployments, you'll have an Nginx or Apache web server, usually configured for some sort of "virtual hosting". As this is a bit too static for Kubernetes, there's the concept of `_Ingress_`, i.e.  HTTP-based load-balancing for Kubernetes.
+So far, we talked about dynamically spawning up pods, but never about how network traffic actually reaches your applications. Kubernetes is inheritly dynamic, meaning you can spawn new pods or shut them down at any point in time.
 
-At the end of the day, you'll need to install an Ingress controller (there is no standard one being built into Kubernetes), which will do the load-balancing for you .Options are plentyful: On platforms like AWS, you'd simply use ELB, if you go bare-metal Kubernetes you could use https://projectcontour.io/[Contour], etc.
+Kubernetes has a couple of concepts to help you with that, from `_Service_` objects (which allow you to expose parts of your cluster to the outer world) to `_Ingress_` objects (allowing you to do HTTP load balancing). Again, this will amount to tons and tons of YAML and a fair amount of reading, but at the end of the day Kubernetes allows you to route any traffic your application gets to your cluster and the other way around.
 
-=== Secrets Management
+(Fun Ingress Fact: You'll need to install an Ingress controller (there is no standard one being built into Kubernetes), which will do the load-balancing for you .Options are plentyful: On platforms like AWS, you'd simply use ELB, if you go bare-metal Kubernetes you could use https://projectcontour.io/[Contour], etc.)
 
-Apart from a myriad of other things Kubernetes can do, you can also use it to store secrets (think database or API credentials).
+=== Last but not least: ConfigMaps & Secrets Management
 
-By default, they're being stored unencrypted, hence the need to follow the _Safely use Secrets_ section https://kubernetes.io/docs/concepts/configuration/secret/[on this page], or even alltogether plugging in an external Secrets store, from AWS, GCP's and Azure's solutions, to https://github.com/hashicorp/vault-csi-provider[HashiCorp's Vault].
+Apart from the myriad things you've already seen Kubernetes do, you can also use it to store configuration key-value pairs, as well as secrets (think database or API credentials).
 
-=== Enough concepts: Don't these YAML files become a mess?
+(By default, secrets are being stored unencrypted, hence the need to follow the _Safely use Secrets_ section https://kubernetes.io/docs/concepts/configuration/secret/[on this page], or even altogether plugging in an external Secrets store, from AWS, GCP's and Azure's solutions, to https://github.com/hashicorp/vault-csi-provider[HashiCorp's Vault].)
 
-For example, the WordPress CMS system can be run inside of Kubernetes. But typically it would need at least a Deployment (for the WordPress server), a ConfigMap for configuration and probably a Secret (to keep passwords), a few Service objects, a StatefulSet running a database, and a few role-based access control (RBAC) rules. Already, a Kubernetes description of a basic WordPress site would span thousands of lines of YAML. At the very core of Helm is this idea that all of those objects can be packaged to be installed, updated, and deleted together.
+=== Enough! Don't these YAML files become a mess?
 
-The short answer: potentially. But you're also a developer and not necessarily the one maintaining these files.
+Well...
 
-It helps to use your IDEs support, https://www.jetbrains.com/help/idea/kubernetes.html[IntelliJ IDEA] in my case, to get coding assistance support for Helm charts, Kustomize files et al. Oh, we haven't talked about them yet. Let's do that.
+If you think of deploying e.g. https://wordpress.org/download/source/[Wordpress] with Kubernetes, then you'll need a `_Deployment_`, as well as a `_ConfigMap_` and probably also `_Secrets_`. And then a couple of other `_Services_` and other objects we haven't touched here yet. Meaning, you'll end up with thousands of lines of YAML. This doesn't make it intrinsically _messy_, but already at that small stage, there is a ton of _DevOps_ complexity involved.
+
+However, you're also a developer and [line-through]#hopefully# not necessarily the one maintaining these files.
+
+Just in case you have to, it helps tremendously to use your IDEs Kubernete's support, https://www.jetbrains.com/help/idea/kubernetes.html[IntelliJ IDEA] in my case, to get coding assistance support for Helm charts, Kustomize files et al. Oh, we haven't talked about them yet. Let's do that.
 
 TBD link IntelliJ video
 
 === What are Helm Charts?
 
+TBD
+
 === What is Kustomize?
+
+TBD
 
 === What is Terraform?
 
+TBD
+
 === DO I really need all of this?
+
+TBD
 
 https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/
 
@@ -540,13 +545,13 @@ Comparison with ansible.....puppet?
 
 application servers vs kubernetes...
 
-=== Framework Support
-
-spring boot builds directly into docker image.....optimized .....
-
 === How does Kubernetes influence my local development?
 
+TBD
+
 === How do I do local development with Kubernetes?
+
+TBD
 
 twitter poll
 
@@ -562,6 +567,8 @@ testcontainers...
 
 ===  online hype stories && what ifs?????
 
+TBD
+
 strive a career in sales and marketing if you can plausibly explain where 5x the traffic will come from tomorrow....
 
 online hype stories vs reality
@@ -572,6 +579,8 @@ https://longform.asmartbear.com/exponential-growth/
 
 === moving complexity
 
+TBD
+
 reference kubernetes book...2016 devops...study...would like to have a closer look
 
 100000 of books for Kubernetes...100s of pages to set up just networking
@@ -580,16 +589,13 @@ Answered: K8s as an abbreviation results from counting the eight letters between
 
 Enough with random, boring facts no one will remember, let's start at the very beginning.
 
-
 === Common Kubectl Commands
 
-TODO: Neatly grouped/sorted list of commonly used kubectl command for developers.
-
-In general, the right question to ask yourself when designing Pods is “Will these containers work correctly if they land on different machines?” If the answer is no, a Pod is the correct grouping for the containers. If the answer is yes, using multiple Pods is probably the correct solution. In the example at the beginning of this chapter, the two containers interact via a local filesystem. It would be impossible for them to operate correctly if the containers were scheduled on different machines.
-
-
+If there is any interested in these common `_kubectl_` commands, post a comment down below, and I'll add the most frequently used here, as neatly grouped/sorted list.
 
 === Fin
+
+TBD
 
 small workloads, vs . google sized workloads....while default seems to be k8, do you really NEED this stuff??
 
@@ -597,17 +603,12 @@ small workloads, vs . google sized workloads....while default seems to be k8, do
 
 Yet to come. Ssend in a PR btw if you don't like something
 
-
-
 == References
 
 Learning Helm
 Kubernetes Getting Started
 
 === TODO
-
-
-
 
 In a reconciliation loop, the scheduler says “here is the user’s desired state. Here is the current state. They are not the same, so I will take steps to reconcile them.” The user wants storage for the container. Currently there is no storage attached. So Kubernetes creates a unit of storage and attaches it to the container. The container needs a public network address. None exists. So a new address is attached to the container. Different subsystems in Kubernetes work to fulfill their individual part of the user’s overall declaration of desired state.
 
