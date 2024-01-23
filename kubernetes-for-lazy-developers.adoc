@@ -135,7 +135,7 @@ If your application...
 
 Things get interesting if you want to start running hundreds, thousands (or a multiple of that) containers, if you don't care or don't want to know on what specific underlying hardware/box your containers will be running on, yet still want to be able to sensibly manage all of this. Kubernetes, to the rescue!
 
-(Note: Quite a while ago I read a Kubernetes book, where in the intro they specified a lower-bound number where Kubernetes makes sense and *I think* it started with hundreds to thousands, though I cannot find the exact book anymore.)
+(Note: Quite a while ago I read a Kubernetes book, where in the intro they specified a lower-bound number where running Kubernetes starts makes sense and *I think* it started with hundreds to thousands, though I cannot find the exact book anymore. To be checked)
 
 Let's do a quick Kubernetes Concept 101.
 
@@ -153,7 +153,7 @@ Alright, we got `_pods_` running on `_nodes_`, but who controls those nodes and 
 
 === Kubernetes 101: Control Pane
 
-Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one_ component that controls your nodes (as opposed to the https://kubernetes.io/docs/concepts/overview/components/[roughly 947 components] it consists of). The control pane...
+Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one_ component that controls your nodes (as opposed to the https://kubernetes.io/docs/concepts/overview/components/[approximately 9472 components] it consists of). The control pane, among many things,...
 
 * Let's [line-through]#run# _schedule_ your application, i.e. let's put a pod on a node.
 * Check if all your pods are in the desired state, e.g. are they responsive or does one of them need to be restarted?
@@ -161,7 +161,7 @@ Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one
 
 === Kubernetes 101: Clusters & Clouds
 
-Take multiple nodes and your control pane, and you have a cluster.
+Take multiple nodes and your control pane, and you have a `_cluster_`.
 
 Take multiple clusters and you can separate your dev, test & production environments or maybe teams, projects or different application types - that's up to you.
 
@@ -171,7 +171,7 @@ Take it even further, and [line-through]#try going# go multi-cloud Kubernetes, r
 
 There are also a fair amount of https://kubernetes.io/docs/concepts/overview/components/#web-ui-dashboard[Kubernetes add-ons].
 
-Most importantly for the developer, there is a https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Web UI/Dashboard] which you can use to essentially manage your cluster, deploy your containerized applications etc.
+Most importantly for developers there is a https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Web UI/Dashboard] which you can use to essentially manage your cluster.
 
 If you're not self-hosting your Kubernetes setup, you'd simply use whatever UI your cloud vendors, like https://cloud.google.com/gcp/[Google Cloud], https://aws.amazon.com/eks/[AWS] or the many others provide.
 
@@ -179,17 +179,17 @@ If you're not self-hosting your Kubernetes setup, you'd simply use whatever UI y
 
 Those four 101-sections above will (hopefully) give you enough of a mental model to get started with Kubernetes and we'll leave it at that with the concepts.
 
-Truth to be told, you'll be shocked if you enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day! The good part: you, as a developer, don't have to care about most of that's written in these books, teaching you how to setup, maintain and manage your clusters, though being aware of the sheer complexity of all of this helps.
+Truth to be told, you'll be shocked if you enter "Kubernetes" on https://learning.oreilly.com . You'll get thousands of learning resource results, with many many many of the books being 500+ pages long. Fine reading for a rainy winter day! The good part: you, as a developer, don't have to care about most of that's written in these books, teaching you how to setup, maintain and manage your clusters, though being aware of the sheer complexity of all of this helps.
 
 === What do I need to do to see all of this in action?
 
 * A Kubernetes installation (we'll talk about that a bit later in more detail)
-* YAML, YAML, YAML Files
+* YAML, YAML, YAML!!!
 * A tool to interact with your Kubernetes cluster: `_Kubectl_`
 
-=== Where do I get kubectl
+=== Where do I get kubectl?
 
-Check out https://kubernetes.io/docs/tasks/tools/[this link], which lists various ways of installing kubectl for your specific operating system.
+You can download `_kubectl_`, which is essentially _the_ CLI tool to do everything you ever wanted to do with your Kubernetes cluster https://kubernetes.io/docs/tasks/tools/[here]. That page lists various ways of installing kubectl for your specific operationg system.
 
 === What do I need for kubectl to work?
 
@@ -199,17 +199,19 @@ By default, that file is located at `_~/.kube/config_`. It is also important to 
 
 === Where do I get the kubeconfig file from?
 
-If you are using a managed Kubernetes installation (https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html[EKS], https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl[GKE], https://gist.github.com/dcasati/c71243c1a010993d9f281e0f06dc839d[AKS]), check out the corresponding documentation pages. Yes, just click the links, I did all the work linking to the correct pages. Simply put, you'll use their CLI tools to generate the file for you.
+*Option 1* If you are using a managed Kubernetes installation (https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html[EKS], https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl[GKE], https://gist.github.com/dcasati/c71243c1a010993d9f281e0f06dc839d[AKS]), check out the corresponding documentation pages. Yes, just click the links, I did all the work linking to the correct pages. Simply put, you'll use their CLI tools to generate/download the file for you.
 
-If you installed e.g. https://minikube.sigs.k8s.io/docs/start/[Minikube] locally, it will create the kubeconfig file for you.
+*Option 2* If you installed e.g. https://minikube.sigs.k8s.io/docs/start/[Minikube] locally, it will automatically create a kubeconfig file for you.
 
-If you can ssh into your master node, run a
+*Option 3* If you happen to know your Kubernetes master node and can ssh into it, run a:
 
 `_cat /etc/kubernetes/admin.conf_` or cat `_~/.kube/config_`
 
 === Anything else I need to know about the kubeconfig file?
 
-A kubeconfig file is good, old YAML, and there are many things it can contain (clusters, users, contexts). For the inclined, https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/[check out the official documentation]. For now we can ignore users and contexts and live with the simplification that the kubeconfig file contains the cluster(s) you can connect to, e.g. `_development_` or `_test_`.
+A kubeconfig file is good, old YAML, and there are many things it can contain (clusters, users, contexts). For the inclined, https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/[check out the official documentation].
+
+For now we can ignore users and contexts and live with the simplification that the kubeconfig file contains the cluster(s) you can connect to, e.g. `_development_` or `_test_`.
 
 Here's an example kubeconfig file, taken https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/[from the official Kubernetes documentation].
 
@@ -260,6 +262,8 @@ users:
     username: exp
 ----
 
+TODO line by line explanations:
+
 === Kubectl 101
 
 What can you now do with Kubectl? Remember, at the beginning we said your goal is to have a pod (n+ containers), and schedule it (run them) on a node (server).
@@ -269,7 +273,7 @@ And the way is to feed yaml files (yay) with the desired state of your cluster i
 
 === Pod Manifests
 
-You could, for example, create a file called `_marcocodes-pod.yaml_` that looks like this:
+You could, for example, create a file called `_marcocodes-pod.yaml_` that looks like this...
 
 [source,yaml]
 ----
@@ -287,27 +291,109 @@ spec:
           protocol: TCP
 ----
 
-The desired state is to have a pod, based on a dockerimage `_marcocodes:1.4_` and being able to access it on port 8080 via http.
-
-If we now run the following command....
+...and feed it into your Kubernetes cluster with the following kubectl command:
 
 [source,console]
 ----
  kubectl apply -f marcocodes-pod.yaml
 ----
-...then our yaml file will be submitted to the https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/[Kubernetes API Server] and eventually our Kubernetes system will schedule that Pod to run on a healthy, viable node in our cluster.
 
-We managed to schedule a single, static, one-off pod. Where is the advantage to just running `_docker run -d --publish 8080:8080 gcr.io/marco/marcocodes:1.4_`?
-›
-Well, for now, there is none.
+What would applying this yaml file do? Well, let's go through it step by step:
 
-That's why we unfortunately need to learn two more Kubernetes concepts: `_ReplicaSets_` and `_Deployments_
+[source,yaml,indent=0,role=tooth]
+----
+kind: Pod
+----
+
+Kubernetes knows a variety of so-called `_objects_`, `_Pod_` being one of them, and you'll meet the other ones in a bit. Simply put, this .yaml file describes what pod we want to deploy.
+
+[source,yaml,indent=0,role=tooth]
+----
+metadata:
+  name: marcocodes-web
+----
+
+Every object and thus every .yaml file in Kubernetes is full of `_metadata_` tags. In this case, we give our pod the `_name_` with value `_marcocodes_web_`. What is this metadata for?
+Simply put, Kubernetes needs to somehow, uniquely identify resources in a cluster: Do I already have a pod with name `_marcocodes_web_` running or do I have to start a new one? That is what the metadata is for.
+
+
+[source,yaml,indent=0,role=tooth]
+----
+spec:
+  containers:
+    - image: gcr.io/marco/marcocodes:1.4
+      name: marcocodes-web
+      ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+----
+
+You need to tell Kubernetes _what_ your pod should look like. Remember, it can be n+ containers, hence you can specify a list of containers in the YAML file, even though often you only specify exactly one.
+
+You'll specify a specific Docker image, including its version and also expose port 8080 on that container via http. That's it.
+
+*Long Story Short* When you run `_kubectl apply_`, your yaml file will be submitted to the https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/[Kubernetes API Server] and eventually our Kubernetes system will schedule a pod (with a marcocodes 1.4 container) to run on a healthy, viable node in our cluster.
+
+=== Resources & Volumes
+
+Specifying just the container image isn't all you can do. First off, you might want to take care of your container's resource consumption:
+
+[source,yaml,indent=0,role=tooth]
+----
+# ....
+spec:
+  containers:
+    - image: gcr.io/marco/marcocodes:1.4
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "128Mi"
+# ....
+----
+
+This makes sure your container gets _at least_ _500m_ (aka 0,5) of CPU, and 128 MB of memory. (You can also specify upper limits that are never to be broken).
+
+In addition, when a Pod is deleted or a container simply restarts, the data in the container’s filesystem is deleted. To circumvent that, you might want to store your data on a `_persistent volume_`.
+
+[source,yaml,indent=0,role=tooth]
+----
+# ....
+spec:
+  volumes:
+    - name: "marcocodes-data"
+      hostPath:
+        path: "/var/lib/marcocodes"
+  containers:
+    - image: gcr.io/marco/marcocodes:1.4
+      name: marcocodes
+      volumeMounts:
+        - mountPath: "/data"
+          name: "marcocodes-data"
+      ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+# ....
+----
+
+We're going to have one volume called `_marcocodes-data_`, which will be mounted to the `_/data_` directory on the container, and live under `_/var/lib/marcocodes_` on the host machine.
+
+=== Where's the catch?
+
+You just learned that there are pods, and they consist of one or more Docker images, as well as resource consumption rules and volume definitions.
+
+With all of that YAML we then managed to schedule a single, static, one-off pod. Cheeky question: Where is the advantage to just running `_docker run -d --publish 8080:8080 gcr.io/marco/marcocodes:1.4_`?
+
+Well, for now, there actually is none.
+
+That's why we need to dig deeper into the concepts of `_ReplicaSets_` and `_Deployments_
 
 === ReplicaSets
 
-What if you want to have redundant instances of your application? What if you want to be able to scale up or shard your application?
+Let's be humble. We don't need auto-scaling right off the bat, but it would be nice to have redundant instances of our application and some load-balancing, to be a bit more professional with our deployments, wouldn't it?
 
-Then, instead of endlessly creating Pod manifests and manually spinning up one-off pods, you'd use Kubernetes' `_ReplicaSets_`.
+Kubernetes' `_ReplicaSets_` to the rescue!
 
 Let's have a look at a `_marcocodes-replica.yaml_` file, that defines such a minimal ReplicaSet.
 
@@ -315,41 +401,29 @@ Let's have a look at a `_marcocodes-replica.yaml_` file, that defines such a min
 ----
 apiVersion: apps/v1
 kind: ReplicaSet
-metadata:
-  name: marcocodes-web
+# metadata:
+# ...
 spec:
   replicas: 2
-  selector:
-    matchLabels:
-      app: marcocodes-web
-      version: "3.85"
+  selector: "you will learn this later"
+  # ...
   template:
-    metadata:
-      labels:
-        app: marcocodes-web
-        version: "3.85"
+    metadata: "you will learn this later"
+      # ...
     spec:
       containers:
         - name: marcocodes-web
           image: "gcr.io/marco/marcocodes:3.85"
 ----
 
-Let's step through this one by one.
+I left out a fair amount of lines (and complexity) out of this YAML file, but most interestingly for now are these two changes:
 
 [source,yaml,indent=0,role=tooth]
 ----
 kind: ReplicaSet
 ----
 
-In this .yaml file we want to create a `_ReplicaSet_`, not a `_Pod_ or another so-called Kubernetes `_object_`.
-
-[source,yaml,indent=0,role=tooth]
-----
-metadata:
-  name: marcocodes-web
-----
-
-We're giving our `_ReplicaSet_` the name `_marcocodes-web_` (and that name is unique in your cluster, for the samed type of resource).
+This .yaml now describes a `_ReplicaSet_`, not a `_Pod_ anymore.
 
 [source,yaml,indent=0,role=tooth]
 ----
@@ -357,72 +431,20 @@ spec:
   replicas: 2
 ----
 
-Here's the meat: We want to have 2 replicas == pods running at any given time. If we put in 10 here, Kubernetes would make sure to have 10 running at the same time.
+Here's the meat: We want to have 2 replicas == pods running at any given time. If we put in 10 here, Kubernetes would make sure to have 10 pods running at the same time.
 
-[source,yaml,indent=0,role=tooth]
-----
- selector:
-    matchLabels:
-      app: marcocodes-web
-      version: "3.85"
-----
-What is the `_selector_` bit for? We'll actually skip that for a minute, look at the `_template_` section first and then come back to it again.
-
-[source,yaml,indent=0,role=tooth]
-----
-template:
-    metadata:
-      labels:
-        app: marcocodes-web
-        version: "3.85"
-    spec:
-      containers:
-        - name: marcocodes-web
-          image: "gcr.io/marco/marcocodes:3.85"
-----
-
-We know we want to have 2 replicas running, but *what* replicas, exactly? Hence, we'll need to define a template for the pods to boot up.
-
-[source,yaml,indent=0,role=tooth]
-----
-spec:
-  containers:
-    - name: marcocodes-web
-      image: "gcr.io/marco/marcocodes:3.85"
-----
-
-We're telling Kubernetes that the pod will consist of only one container, called marcocodes-web, with a specific Docker image from the gcr.io repository.
-
-[source,yaml,indent=0,role=tooth]
-----
-metadata:
-  labels:
-    app: marcocodes-web
-    version: "3.85"
-----
-
-We're simply adding some `_app_` and `_version_` metadata to our created pods. And now, the selector bit above might start making sense.
-
-[source,yaml,indent=0,role=tooth]
-----
- selector:
-    matchLabels:
-      app: marcocodes-web
-      version: "3.85"
-----
-
-When the ReplicaSet is created (or the so-called _reconcilliation loop_ trying to achieve its desired state), it fetches a Pod listing from the Kubernetes API and _filters_ the results by labels. In this case, pods who have the `_app_ set `_marcocodes-web_` and `_version_` to `_3.85_`. And depending on the number of pods being returned, Kubernetes will then spin up or down additional replicas.
-
-That's all there is to it.
+When we now apply this .yaml file....
 
 [source,console]
 ----
-kubectl apply -f kuard-rs.yaml
+kubectl apply -f marcocodes-rs.yaml
 ----
 
-As you might have guessed, simply feeding this .yaml file to the `_apply_ command of kubectl will do its job.
+Kubernetes will fetch a Pod listing from the Kubernetes API (and filter the results by metadata) and depending on the number of pods being returned, Kubernetes will spin up or down additional replicas. That's all there it so it./
 
-`_ReplicaSets_` are _almost_ what you'd like to have, but they come with a problem: They are tied to a specific version of your container images and those are actually not really expected to change. And ReplicaSets also don't really help you with the _rolling out process_ (think, zero downtime) of your software.
+=== ReplicaSets: Summary
+
+`_ReplicaSets_` are _almost_ what you'd like to have, but they come with a problem: They are tied to a specific version of your container images (3.85 in our case above) and those are actually not really expected to change. And ReplicaSets also don't really help you with the _rolling out process_ (think, zero downtime) of your software.
 
 Hence we need a new concept to help us manage releases of new versions, meet `_Deployments_`.
 
