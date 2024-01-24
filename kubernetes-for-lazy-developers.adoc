@@ -51,7 +51,7 @@ With PHP, Python, ahem, Node the picture looks different and you could/can easil
 
 === Hail to the Docker!
 
-Chances are high that you already know what Docker is and how to work with it. (If not and you want to see a Docker specific guide, please post a comment down below! More demand -> Faster publication). The short summary is:
+Chances are high that you already know what Docker is and how to work with it. (If not, and you want to see a Docker specific guide, please post a comment down below! More demand -> Faster publication). The short summary is:
 
 * You build your source code into a deployable, e.g. the `_jar_` file.
 * You additionally build a new Docker image, with your `_jar_` file baked in.
@@ -59,7 +59,7 @@ Chances are high that you already know what Docker is and how to work with it. (
 
 -> Instead of deploying your .jar file, you'll now deploy your Docker image and run a Docker container.
 
-The beauty of this is: As long as you have Docker installed on the target machine (and you have Kernel compatibility between your host OS and the Docker container ) you can run any Docker image you want.
+The beauty of this is: As long as you have Docker installed on the target machine (and you have Kernel compatibility between your host OS and the Docker container) you can run any Docker image you want.
 
 [source,console]
 ----
@@ -67,7 +67,7 @@ docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
 
 // yay, your application is deployed
 
-// This will start a Docker container on basis of the `_mynewaistartup_` Docker image.
+// This will start a Docker container based on the `_mynewaistartup_` Docker image.
 // That image will, among other things, contain your e.g. -jar file,
 // a web application which runs on port 8080, as well as instructions on how to run it.
 // Hint: These instructions are `_java -jar mynewaistartup.jar_`.
@@ -77,9 +77,9 @@ docker run --name my-new-ai-startup -p 80:8080 -d mynewaistartup
 
 You or your CI/CD server managed to bake your application into a Docker image. But how does that Docker image eventually end up on your target deployment server?
 
-You could theoretically save your Docker image as a .tar file, copy it onto your final server and load id there. But more realistically, you'd push your Docker image to a Docker registry, be that https://hub.docker.com/_/registry[dockerhub], https://aws.amazon.com/ecr/[Amazon ECR] or any of the other gazillion self-hosted container image registries, like https://docs.gitlab.com/ee/user/packages/container_registry/[Gitlab's], for example.
+You could theoretically save your Docker image as a .tar file, copy it onto your final server and load it there. But more realistically, you'd push your Docker image to a Docker registry, be that https://hub.docker.com/_/registry[dockerhub], https://aws.amazon.com/ecr/[Amazon ECR] or any of the other gazillion self-hosted container registries, like https://docs.gitlab.com/ee/user/packages/container_registry/[Gitlab's], for example.
 
-Once your image made it to said registry, you can https://docs.docker.com/engine/reference/commandline/login/[login] to that registry on your targetserver.
+Once your image made it to said registry, you can https://docs.docker.com/engine/reference/commandline/login/[login] to that registry on your target server.
 
 [source,console]
 ----
@@ -151,12 +151,12 @@ Actually, this is not 100% right. In Kubernetes' terms, you deploy (_schedule_) 
 
 Alright, we got `_pods_` running on `_nodes_`, but who controls those nodes and how and where do you decide what to run on these `_nodes_`?
 
-=== Kubernetes 101: Control Pane
+=== Kubernetes 101: Control Plane
 
 Meet the `_Control Plane_` For simplicity's sake, let's just think of it as _one_ component that controls your nodes (as opposed to the https://kubernetes.io/docs/concepts/overview/components/[approximately 9472 components] it consists of). The control pane, among many things,...
 
-* Let's [line-through]#run# _schedule_ your application, i.e. let's put a pod on a node.
-* Check if all your pods are in the desired state, e.g. are they responsive or does one of them need to be restarted?
+* Lets you [line-through]#run# _schedule_ your application, i.e. lets you put a pod on a node.
+* Checks if all your pods are in the desired state, e.g. are they responsive or does one of them need to be restarted?
 * Fulfills every engineer's wet dream: We need to finally scale 10xfold, let's quickly spin up n-more pods!
 
 === Kubernetes 101: Clusters & Clouds
@@ -185,11 +185,11 @@ Truth to be told, you'll be shocked if you enter "Kubernetes" on https://learnin
 
 * A Kubernetes installation (we'll talk about that a bit later in more detail)
 * YAML, YAML, YAML!!!
-* A tool to interact with your Kubernetes cluster: `_Kubectl_`
+* A tool to interact with your Kubernetes cluster: `_kubectl_`
 
 === Where do I get kubectl?
 
-You can download `_kubectl_`, which is essentially _the_ CLI tool to do everything you ever wanted to do with your Kubernetes cluster https://kubernetes.io/docs/tasks/tools/[here]. That page lists various ways of installing kubectl for your specific operationg system.
+You can download `_kubectl_`, which is essentially _the_ CLI tool to do everything you ever wanted to do with your Kubernetes cluster https://kubernetes.io/docs/tasks/tools/[here]. That page lists various ways of installing kubectl for your specific operating system.
 
 === What do I need for kubectl to work?
 
@@ -531,7 +531,7 @@ TBD
 
 TBD
 
-=== DO I really need all of this?
+=== Do I really need all of this?
 
 TBD
 
