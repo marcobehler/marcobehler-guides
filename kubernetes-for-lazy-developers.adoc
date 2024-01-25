@@ -561,7 +561,7 @@ As mentioned earlier in the article, there is an endless amount of learning mate
 * you can explain all the concepts described in this article in more and better detail to all of your developers
 * AND FIRST AND FOREMOST you have legitimate requirements to manage hundreds and thousands of containers dynamically (and no, magic out-of-the-blue-scaling requirements don't count)
 
-... go for Kubernetes. But it is my belief that a huge amount of companies could save themselves a fair amount of stress & money with a simpler approach.
+... go for Kubernetes. But it is my belief that a huge amount of companies could save themselves a fair amount of time, money & stress with a simpler approach.
 
 === Common Kubectl Commands
 
@@ -580,6 +580,7 @@ Vote in the comment section if you want any of the below or all of them to happe
 * Supply copy-paste commands * K8s files so that readers can follow along
 * Potentially: Kubectl Commands
 * Potentially: Example on Kubernetes vs Docker Compose side-by-side configs
+* Potentially: GitOps
 
 == Acknowledgments & References
 
