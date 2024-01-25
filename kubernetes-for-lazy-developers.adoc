@@ -479,6 +479,14 @@ There are an additional 92387 YAML key-value pairs you'll need to learn for Depl
 * _Recreate_ will kill all your pods with the old version and re-create them with a new version: your users will experience downtime
 * _RollingUpdate_ will perform the update while still serving traffic through old pods, and is thus generally preferred.
 
+
+=== TODO: Reconcilliation loops
+
+TODO TODO: where does this fit in?
+
+In a reconciliation loop, the scheduler says “here is the user’s desired state. Here is the current state. They are not the same, so I will take steps to reconcile them.” The user wants storage for the container. Currently there is no storage attached. So Kubernetes creates a unit of storage and attaches it to the container. The container needs a public network address. None exists. So a new address is attached to the container. Different subsystems in Kubernetes work to fulfill their individual part of the user’s overall declaration of desired state.
+
+
 === Rolling Updates: Too Good To Be True
 
 As always, the devil is in the details. Rolling updates have been done many moons ago already, before Kubernetes existed, even if it was just batch scripts firing SSH commands.
@@ -515,9 +523,7 @@ If you think of deploying e.g. https://wordpress.org/download/source/[Wordpress]
 
 However, you're also a developer and [line-through]#hopefully# not necessarily the one maintaining these files.
 
-Just in case you have to, it helps tremendously to use your IDEs Kubernete's support, https://www.jetbrains.com/help/idea/kubernetes.html[IntelliJ IDEA] in my case, to get coding assistance support for Helm charts, Kustomize files et al. Oh, we haven't talked about them yet. Let's do that.
-
-TBD link IntelliJ video
+Just in case you have to, it helps tremendously to use your IDEs Kubernete's support, https://www.jetbrains.com/help/idea/kubernetes.html[IntelliJ IDEA] in my case, to get coding assistance support for Helm charts, Kustomize files et al. Oh, we haven't talked about them yet. Let's do that. Here's a video, which will get you up to speed with https://www.youtube.com/watch?v=CryOrxL0JA8[IntelliJ's Kubernetes Plugin].
 
 === What are Helm Charts?
 
@@ -531,67 +537,35 @@ TBD
 
 TBD
 
-=== Do I really need all of this?
-
-TBD
-
-https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/
-
-cgroups....resources....limitation......real life -> 0,5 CPUS.....in development needing the latest macbook pro 64 gig
-
-book reference....100s of applications ok...but what about 100thousands.....missing reference (anyone?)
-
-Comparison with ansible.....puppet?
-
-application servers vs kubernetes...
-
-=== How does Kubernetes influence my local development?
-
-TBD
-
 === How do I do local development with Kubernetes?
 
-TBD
+For local development, you essentially have two choices.
 
-twitter poll
+You could run a local Kubernetes cluster and deploy your application(s) into it. You'd probably use https://minikube.sigs.k8s.io/docs/[Minikube] for that. And because the whole "my application changed-now let's build a container image - and then let's deploy this into my cluster" is rather cumbersome to be done manually, you'll probably also want to use a tool like https://skaffold.dev/[Skaffold] to help you with this. Have a look at https://itnext.io/continuous-development-using-skaffold-for-spring-boot-app-on-a-local-minikube-e455704b587c[this tutorial] to get started with that workflow.
+While this setup works, it comes with a fair amount of complexity and/or resource consumption.
 
-For Development...Docker compose.....
+This is where the workaround, choice number two, comes in. For local development, you'd essentially ignore Kubernetes and clone whatever config you need into your very own docker-compose.yml file and simply run that.
+A much simpler setup, but it comes with the downside of having to maintain two sets of configurations (docker-compose.yml + your K8s manifest files).
 
-docker-compose files...and K8s manifest files...
+If you are already using Kubernetes, please let me know in the comment section down below how you approach local development.
 
-clulster & skaffold
+=== Do I really need all of this?
 
-minikube....
+It's a good question and it would be the perfect time to sprinkle in some real-life K8s anecdotes: Sysadmins resource constraining pods to death, so that booting up pods takes endlessly - so long that they are being marked unhealthy and killed, leading to an endless pod-creation-killing loop, but we'll save the long explanation for another time.
 
-testcontainers...
+As a developer you usually don't have to choice to decide, but here's the big picture:
 
-===  online hype stories && what ifs?????
+As mentioned earlier in the article, there is an endless amount of learning material when it comes to just 'hosting' a Kubernetes cluster and we're not just talking about 'self-hosting' it entirely, but also using any of the managed Kubernetes variants. If you have the in-house expertise to:
 
-TBD
+* handle all this additional complexity
+* you can explain all the concepts described in this article in more and better detail to all of your developers
+* AND FIRST AND FOREMOST you have legitimate requirements to manage hundreds and thousands of containers dynamically (and no, magic out-of-the-blue-scaling requirements don't count)
 
-strive a career in sales and marketing if you can plausibly explain where 5x the traffic will come from tomorrow....
-
-online hype stories vs reality
-
-blog post from jason cohen on
-
-https://longform.asmartbear.com/exponential-growth/
-
-=== moving complexity
-
-TBD
-
-reference kubernetes book...2016 devops...study...would like to have a closer look
-
-100000 of books for Kubernetes...100s of pages to set up just networking
-
-Answered: K8s as an abbreviation results from counting the eight letters between the "K" and the "s". https://kubernetes.io/docs/concepts/overview/#:~:text=rapidly%20growing%20ecosystem.-,Kubernetes%20services%2C%20support%2C%20and%20tools%20are%20widely%20available.,the%20Kubernetes%20project%20in%202014[(source)].
-
-Enough with random, boring facts no one will remember, let's start at the very beginning.
+... go for Kubernetes. But it is my belief that a huge amount of companies could save themselves a fair amount of stress & money with a simpler approach.
 
 === Common Kubectl Commands
 
-If there is any interested in these common `_kubectl_` commands, post a comment down below, and I'll add the most frequently used here, as neatly grouped/sorted list.
+If there is any interested in  `_kubectl_` commands that developers might need, post a comment down below, and I'll add the most frequently used here, as neatly grouped/sorted list.
 
 === Fin
 
@@ -599,37 +573,31 @@ TBD
 
 small workloads, vs . google sized workloads....while default seems to be k8, do you really NEED this stuff??
 
-== Acknowledgments
+== Plan For The Next Revision
 
-Yet to come. Ssend in a PR btw if you don't like something
+Vote in the comment section if you want any of the below or all of them to happen:
 
-== References
+* Supply copy-paste commands * K8s files so that readers can follow along
+* Potentially: Kubectl Commands
+* Potentially: Example on Kubernetes vs Docker Compose side-by-side configs
 
-Learning Helm
-Kubernetes Getting Started
+== Acknowledgments & References
 
-=== TODO
+If you see something in this article that you'd like to see improved, please file a PR.
 
-In a reconciliation loop, the scheduler says “here is the user’s desired state. Here is the current state. They are not the same, so I will take steps to reconcile them.” The user wants storage for the container. Currently there is no storage attached. So Kubernetes creates a unit of storage and attaches it to the container. The container needs a public network address. None exists. So a new address is attached to the container. Different subsystems in Kubernetes work to fulfill their individual part of the user’s overall declaration of desired state.
-
-nenn mir EIN docker image das du OHNE ZU WISSEN WAS ES TUT einfach wo deployen kannst
-du musst auf dockerhub die environment variables lesen
-du mussst wissen welche volumes und shit du bereit˚stellen musst
-es ist also nicht "doppelklick app.exe"
-
-rl problem: too little reosurces, killing health-checks, oom, architects, etc.
+Thanks to Maarten Balliauw, Andreas Eisele, Andrei Efimov, Anton Aleksandrov for comments/corrections/discussion. Special thanks to the authors of https://www.oreilly.com/library/view/getting-started-with/9780138057626/[Getting Started with Kubernetes], as well as https://learning.oreilly.com/library/view/learning-helm/9781492083641/[Learning Helm].
 
 
- volumes: 1
-    - name: my-configuration
-      configMap:
-        name: configuration-data 2
-    containers:
-    - image: "nginx:latest"
-      name: example-nginx
-      env: 3
-        - name: BACKGROUND_COLOR 4
-          valueFrom:
-            configMapKeyRef:
-                name: configuration-data 5
-                key: backgroundColor 6
+== TODO marco
+TODO marco:
+
+mention that everything is a manual process editing the files
+
+proper sub-headers, categories
+
+adding helm charts, kustomize and terraform to the mix
+
+docker swarm section..
+
+What I see a lot about similar articles is that authors associate Kubernetes only with Docker. While majority of Kubernetes users run Docker images indeed, it should be highlighted that Kubernetes runs containers.
+I would also state that Docker compose works runs on a single machine by default and in order the make it scalable one needs to run Docker Swarm. Some links about Docker swarm v1 and swarm v2 would be useful.
