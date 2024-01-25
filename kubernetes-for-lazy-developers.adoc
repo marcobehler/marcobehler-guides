@@ -600,5 +600,7 @@ adding helm charts, kustomize and terraform to the mix
 
 docker swarm section..
 
+Also to introduce Helm, there’s one more thing you can talk about: k8s metadata is static, so no easy way to roll a new version of a container. Need to edit the file, save, apply. WHAT IS THIS SHIT! - Helm can help you with this.
+
 What I see a lot about similar articles is that authors associate Kubernetes only with Docker. While majority of Kubernetes users run Docker images indeed, it should be highlighted that Kubernetes runs containers.
 I would also state that Docker compose works runs on a single machine by default and in order the make it scalable one needs to run Docker Swarm. Some links about Docker swarm v1 and swarm v2 would be useful.
