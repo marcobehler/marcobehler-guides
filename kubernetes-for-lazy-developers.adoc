@@ -423,7 +423,7 @@ I left out a fair amount of lines (and complexity) out of this YAML file, but mo
 kind: ReplicaSet
 ----
 
-This .yaml now describes a `_ReplicaSet_`, not a `_Pod_ anymore.
+This .yaml now describes a `_ReplicaSet_`, not a `_Pod_` anymore.
 
 [source,yaml,indent=0,role=tooth]
 ----
@@ -440,7 +440,7 @@ When we now apply this .yaml file....
 kubectl apply -f marcocodes-rs.yaml
 ----
 
-Kubernetes will fetch a Pod listing from the Kubernetes API (and filter the results by metadata) and depending on the number of pods being returned, Kubernetes will spin up or down additional replicas. That's all there it so it./
+Kubernetes will fetch a Pod listing from the Kubernetes API (and filter the results by metadata) and depending on the number of pods being returned, Kubernetes will spin up or down additional replicas. That's all there is to it.
 
 === ReplicaSets: Summary
 
