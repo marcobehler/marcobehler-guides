@@ -1,11 +1,11 @@
 = What is Kubernetes? An Unorthodox Guide for Developers
 Marco Behler
-2024-01-30
+2024-02-10
 :page-layout: layout-guides
 :page-image: "/images/guides/undraw_logistics_x4dc.png"
 :page-description: You can use this guide to get up to speed with Kubernetes as a developer. From its very basics to more intermediate topics like Helm charts and how all of this affects you as a dev.
 :page-published: true
-:page-tags: ["kubernetes", "kubernetes basics", "kubernetes for developers"]
+:page-tags: ["kubernetes", "kubernetes guide", "kubernetes basics", "kubernetes for developers"]
 :page-commento_id: /guides/kubernetes-for-lazy-developer
 
 (*Editor’s note*: At >5000 words, you probably don't want to try reading this on a mobile device. Bookmark it and come back later.)
