@@ -1,4 +1,4 @@
-= Kubernetes for Lazy Developers
+= What is Kubernetes? An Unorthodox Guide for Developers
 Marco Behler
 2024-01-30
 :page-layout: layout-guides
