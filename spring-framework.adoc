@@ -20,7 +20,7 @@ Marco Behler
 
 A lot of companies are using Spring, but then you go to https://spring.io[spring.io] and see that the Spring universe actually consists of 21 different, active projects. Ouch!
 
-Furthermore, if you started programming with Spring in the last couple of years, there is a very high chance that7 you went _directly_ into https://spring.io/guides/gs/spring-boot/[Spring Boot] or Spring Data.
+Furthermore, if you started programming with Spring in the last couple of years, there is a very high chance that you went _directly_ into https://spring.io/guides/gs/spring-boot/[Spring Boot] or Spring Data.
 
 However, this guide is solely about one, the most important one, of these projects: https://spring.io/projects/spring-framework[Spring Framework]. Why?
 
