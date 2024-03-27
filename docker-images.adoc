@@ -1,0 +1,39 @@
+= Docker Images TBD
+Marco Behler
+2024-03-27
+:page-layout: layout-guides
+:page-image: "/images/guides/undraw_takeout_boxes_ap54.png"
+:page-description: TODO
+:page-published: false
+:page-tags: ["docker", "docker images", "docker tips"]
+:page-commento_id: /guides/docker
+
+(TODO)
+
+== Introduction
+
+used docker before, might want to learn some tricks
+
+
+
+* Building an image
+* keeping an image small (show how to find out how bigt an image is)
+
+. This is because it requires crawling the repository index each time you run a build, which means that your build is not guaranteed to be repeatable since package versions might change between builds. Instead, consider basing your application image on another image that already has these updates applied to it and where the versions are in a known state. It will be faster and more repeatable.
+
+ docker image history size1
+
+* Multistage build (build container...production container..)
+* layers are additive (you cannot delete files...show examples....stringing together multiple commands on one line...
+* layer cache - cache ordering..... time docker image build....order matters....
+* directory caching
+
+
+
+
+== Tip
+
+
+== Acknowledgments & References
+
+Thanks to Maarten Balliauw, Andreas Eisele for comments/corrections/discussion.
