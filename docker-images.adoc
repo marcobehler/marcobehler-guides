@@ -49,8 +49,9 @@ IMAGE          CREATED              CREATED BY                                  
 <missing>      8 minutes ago   ARG JAR_FILE=build/libs/*.jar                   0B        buildkit.dockerfile.v0
 ... (other layers from the base image left out)
 ----
+There is a layer for our `_ENTRYPOINT_` line, one for `_COPY_` and one for `_ARG_.
 
-The layer containing our `_app.jar_` file is roughly 20MB large, with 0B layers for the `_ENTRYPOINT_` and `_ARG_` lines.
+The layer containing our `_app.jar_` file (COPY}) is roughly 20MB large, with 0B layers for the `_ENTRYPOINT_` and `_ARG_` lines.
 
 Now, what do we do with this information?
 
@@ -190,7 +191,6 @@ Right. You can read more about this in the https://docs.docker.com/develop/devel
 
 * Either check the command itself you are running
 * Or for ADD and COPY commands calculate checksums of the involved files
-
 
 
 == What are multistage builds?
