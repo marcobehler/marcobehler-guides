@@ -143,9 +143,60 @@ You ideally (hehe) want your builds to be reproduceable. By running `_apt update
 The gist:
 
 * Install only specific versions of whatever you are trying to install
-* Avoid (package-manager-of-your-choice)'ing in your Dockerfiles for your application - instead, build a new base image and use that in your Dockerfile's `_FROM_`. This will also be a lot faster!
+* _Avoid_ (package-manager-of-your-choice)'ing in your Dockerfiles for your application in the first place - instead, build a new base image and use that in your Dockerfile's `_FROM_`. This will also be a lot faster!
 
 == Layer order matters
+
+You'll want to make sure to put layers which change a lot towards the bottom of your `_Dockerfile_`, whereas more stable layers should be ordered on top.
+
+Why? Because when building images, you'll need to rebuild _every_ layer starting from the layer that changed.
+
+A practical example. Imagine that you also want to package an index.html file into your image, which changes _a lot_, i.e. more often than anything else.
+
+[source,Dockerfile]
+----
+FROM eclipse-temurin:17-jdk
+COPY index.html index.html
+RUN apt update -y &&  \
+    apt install -y mysql-server &&  \
+    rm -rf /var/lib/apt/lists/*
+ARG JAR_FILE=build/libs/*.jar
+COPY  ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]
+----
+
+You can see the `_COPY index.html index.html_` line added almost at the top of the `_Dockerfile_`. Now, *everytime* the index.html file changes, you'll need to rebuild the following layers, i.e. the `_apt-update / mysql & copy .jar file_` layers - a huge time sink, as it takes roughly 17 seconds on my machine.
+
+If you re-order the statement towards the bottom, Docker can re-use the previous layers, as they haven't changed.
+
+[source,Dockerfile]
+----
+FROM eclipse-temurin:17-jdk
+RUN apt update -y &&  \
+    apt install -y mysql-server &&  \
+    rm -rf /var/lib/apt/lists/*
+ARG JAR_FILE=build/libs/*.jar
+COPY  ${JAR_FILE} app.jar
+COPY index.html index.html
+ENTRYPOINT ["java","-jar","/app.jar"]
+----
+
+Now a new `_docker build_` only takes, 0.5 seconds, much much better!
+
+
+== You haven't explained how the layer cache works
+
+Right. You can read more about this in the https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#leverage-build-cache[official documentation]. The gist is, whenever you run Docker build, Docker will:
+
+* Either check the command itself you are running
+* Or for ADD and COPY commands calculate checksums of the involved files
+
+
+
+== What are multistage builds?
+
+== Directory Caching
+
 
 * Multistage build (build container...production container..)
 * layer cache - cache ordering..... time docker image build....order matters....
