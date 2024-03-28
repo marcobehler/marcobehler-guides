@@ -199,6 +199,9 @@ Right. You can read more about this in the https://docs.docker.com/develop/devel
 
 
 * Multistage build (build container...production container..)
+
+* .dockerignore.. git....uploading to docker host...
+
 * layer cache - cache ordering..... time docker image build....order matters....
 * directory caching
 
