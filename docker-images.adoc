@@ -1,35 +1,155 @@
-= Docker Images TBD
+= Docker Images - Finally Understandable
 Marco Behler
 2024-03-27
 :page-layout: layout-guides
 :page-image: "/images/guides/undraw_takeout_boxes_ap54.png"
-:page-description: TODO
+:page-description: Tips & Tricks to build Docker images in the fastest amount of time and with the smallest possible size.
 :page-published: false
 :page-tags: ["docker", "docker images", "docker tips"]
 :page-commento_id: /guides/docker
 
-(TODO)
 
-== Introduction
+== What are we trying to understand?
 
-used docker before, might want to learn some tricks
+Whenever you're building Docker images, say, you want to bake your Java/Node/Python application into one, you'll be confrontend with the following two questions:
+
+* How can I make the `_docker build_` command run as fast as possible?
+* How can I make sure that the resulting Docker image is as small as possible?
+
+You want to continue reading for answers to these questions.
+
+== Context: Docker Image Layers
+
+Take a look at the following Dockerfile.
+
+[source,dockerfile]
+----
+FROM eclipse-temurin:17-jdk
+ARG JAR_FILE=build/libs/*.jar
+COPY  ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]
+----
+
+By running `_docker build -t myapp ._`, we will get (one) Docker image, which will be based off a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
+
+What might not immediately be obvious, that _every single line_ from your Docker line, will result in _one_ Docker image layer. You can confirm this by running e.g.:
+
+[source,console]
+----
+ docker image history myapp
+----
+
+Which will return something like this:
+
+[source,console]
+----
+IMAGE          CREATED              CREATED BY                                      SIZE      COMMENT
+3ca5a60826f0   8 minutes ago   ENTRYPOINT ["java" "-jar" "/app.jar"]           0B        buildkit.dockerfile.v0
+<missing>      8 minutes ago   COPY build/libs/*.jar app.jar # buildkit        19.7MB    buildkit.dockerfile.v0
+<missing>      8 minutes ago   ARG JAR_FILE=build/libs/*.jar                   0B        buildkit.dockerfile.v0
+... (other layers from the base image left out)
+----
+
+The layer containing our `_app.jar_` file is roughly 20MB large, with 0B layers for the `_ENTRYPOINT_` and `_ARG_` lines.
+
+Now, what do we do with this information?
+
+== Your layers can easily bloat
+
+Imagine you want to install a package through your package manager, and for that you want to run `_apt update_`, which updates the package index.
+
+[source,dockerfile]
+----
+FROM eclipse-temurin:17-jdk
+RUN apt update -y
+ARG JAR_FILE=build/libs/*.jar
+COPY  ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]
+----
+
+Let's have a look at the resulting layers (`_docker image history myapp_`):
+
+[source,console]
+----
+IMAGE          CREATED         CREATED BY                                      SIZE      COMMENT
+c14a18a04751   8 seconds ago   ENTRYPOINT ["java" "-jar" "/app.jar"]           0B        buildkit.dockerfile.v0
+<missing>      8 seconds ago   COPY build/libs/*.jar app.jar # buildkit        19.7MB    buildkit.dockerfile.v0
+<missing>      8 seconds ago   ARG JAR_FILE=build/libs/*.jar                   0B        buildkit.dockerfile.v0
+<missing>      8 seconds ago   RUN /bin/sh -c apt update -y # buildkit         45.7MB    buildkit.dockerfile.v0
+----
+
+Wooha! Running `_apt-update_` has added a new layer with a whooping 45.7MB to our resulting Docker image.
+
+== Layers are additive
+
+Let's continue with the example above and add a couple more run commands, to install the latest mysql package.
+
+[source,dockerfile]
+----
+FROM eclipse-temurin:17-jdk
+RUN apt update -y
+RUN apt install mysql -y
+RUN rm -rf /var/lib/apt/lists/*
+ARG JAR_FILE=build/libs/*.jar
+COPY  ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]
+----
+
+In addition, we're removing the apt index cachce (the 45.7MB from above) with the `_rm -rf_` command. Let's see what our image history now looks like:
+
+[source,console]
+----
+59f82a5b4c5a   6 seconds ago   ENTRYPOINT ["java" "-jar" "/app.jar"]           0B        buildkit.dockerfile.v0
+<missing>      6 seconds ago   COPY build/libs/*.jar app.jar # buildkit        19.7MB    buildkit.dockerfile.v0
+<missing>      6 seconds ago   ARG JAR_FILE=build/libs/*.jar                   0B        buildkit.dockerfile.v0
+<missing>      6 seconds ago   RUN /bin/sh -c rm -rf /var/lib/apt/lists/* #…   0B        buildkit.dockerfile.v0
+<missing>      7 seconds ago   RUN /bin/sh -c apt install -y mysql-server #…   605MB     buildkit.dockerfile.v0
+<missing>      8 minutes ago   RUN /bin/sh -c apt update -y # buildkit         45.7MB    buildkit.dockerfile.v0
+----
+
+Waah, what's that? Even though we deleted the apt cache files, the 45.7MB layer is still there (in addition to the 605MB MySQL layer, btw). That's because layers are strictly _additive_.
+
+How could we get around this? A simple workaround would be to run all three `_RUN_` commands on a single line (== a single resulting layer)
 
 
+[source,dockerfile]
+----
+FROM eclipse-temurin:17-jdk
+RUN apt update -y &&  \
+    apt install -y mysql-server &&  \
+    rm -rf /var/lib/apt/lists/*
+ARG JAR_FILE=build/libs/*.jar
+COPY  ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]
+----
 
-* Building an image
-* keeping an image small (show how to find out how bigt an image is)
+Let's look at the image's history now:
 
-. This is because it requires crawling the repository index each time you run a build, which means that your build is not guaranteed to be repeatable since package versions might change between builds. Instead, consider basing your application image on another image that already has these updates applied to it and where the versions are in a known state. It will be faster and more repeatable.
+[source,console]
+----
+IMAGE          CREATED          CREATED BY                                      SIZE      COMMENT
+4b8c0f7f895a   14 seconds ago   ENTRYPOINT ["java" "-jar" "/app.jar"]           0B        buildkit.dockerfile.v0
+<missing>      14 seconds ago   COPY build/libs/*.jar app.jar # buildkit        19.7MB    buildkit.dockerfile.v0
+<missing>      14 seconds ago   ARG JAR_FILE=build/libs/*.jar                   0B        buildkit.dockerfile.v0
+<missing>      14 seconds ago   RUN /bin/sh -c apt update -y &&      apt ins…   605MB     buildkit.dockerfile.v0
+----
 
- docker image history size1
+Ha! We at least saved the 45.7MB for now. What else is wrong with this, though?
+
+== But wait, there's more (problems)!
+
+You ideally (hehe) want your builds to be reproduceable. By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproduceability, because package versions might change between builds.
+
+The gist:
+
+* Install only specific versions of whatever you are trying to install
+* Avoid (package-manager-of-your-choice)'ing in your Dockerfiles for your application - instead, build a new base image and use that in your Dockerfile's `_FROM_`. This will also be a lot faster!
+
+== Layer order matters
 
 * Multistage build (build container...production container..)
-* layers are additive (you cannot delete files...show examples....stringing together multiple commands on one line...
 * layer cache - cache ordering..... time docker image build....order matters....
 * directory caching
-
-
-
 
 == Tip
 
