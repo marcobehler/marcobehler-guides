@@ -16,9 +16,9 @@ Whenever you're building Docker images, say, you want to bake your Java/Node/Pyt
 * How can I make the `_docker build_` command run as fast as possible?
 * How can I make sure that the resulting Docker image is as small as possible?
 
-You want to continue reading for answers to these questions.
+You will want to continue reading for answers to these questions.
 
-== Context: Docker Image Layers
+== Docker Image Layers 101
 
 Take a look at the following Dockerfile.
 
@@ -30,7 +30,7 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-By running `_docker build -t myapp ._`, we will get (one) Docker image, which will be based off a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
+By running `_docker build -t myapp ._`, you will get (one) Docker image, which will be based off a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
 
 What might not immediately be obvious, that _every single line_ from your Docker line, will result in _one_ Docker image layer. You can confirm this by running e.g.:
 
@@ -51,13 +51,13 @@ IMAGE          CREATED              CREATED BY                                  
 ----
 There is a layer for our `_ENTRYPOINT_` line, one for `_COPY_` and one for `_ARG_.
 
-The layer containing our `_app.jar_` file (COPY}) is roughly 20MB large, with 0B layers for the `_ENTRYPOINT_` and `_ARG_` lines.
+The layer containing our `_app.jar_` file (COPY}) is roughly 20MB large, with 0B metadata layers for the `_ENTRYPOINT_` and `_ARG_` lines.
 
 Now, what do we do with this information?
 
 == Your layers can easily bloat
 
-Imagine you want to install a package through your package manager, and for that you want to run `_apt update_`, which updates the package index.
+Imagine you want to install a package through your package manager, and for that you want to run `_apt update_`, which updates the package manager's index.
 
 [source,dockerfile]
 ----
@@ -96,7 +96,7 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-In addition, we're removing the apt index cachce (the 45.7MB from above) with the `_rm -rf_` command. Let's see what our image history now looks like:
+In addition, we're removing the apt index cache (the 45.7MB from above) with the `_rm -rf_` command. Let's see what our image history now looks like:
 
 [source,console]
 ----
@@ -108,7 +108,7 @@ In addition, we're removing the apt index cachce (the 45.7MB from above) with th
 <missing>      8 minutes ago   RUN /bin/sh -c apt update -y # buildkit         45.7MB    buildkit.dockerfile.v0
 ----
 
-Waah, what's that? Even though we deleted the apt cache files, the 45.7MB layer is still there (in addition to the 605MB MySQL layer, btw). That's because layers are strictly _additive_.
+Waah, what's that? Even though we deleted the apt cache files, the 45.7MB layer is still there (in addition to the 605MB MySQL layer, btw). That's because layers are strictly _additive / immutable_.
 
 How could we get around this? A simple workaround would be to run all three `_RUN_` commands on a single line (== a single resulting layer)
 
@@ -137,9 +137,9 @@ IMAGE          CREATED          CREATED BY                                      
 
 Ha! We at least saved the 45.7MB for now. What else is wrong with this, though?
 
-== But wait, there's more (problems)!
+== Make it reproduceable
 
-You ideally (hehe) want your builds to be reproduceable. By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproduceability, because package versions might change between builds.
+You ideally (who would have thought) want your builds to be reproduceable. By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproduceability, because package versions might change between builds.
 
 The gist:
 
@@ -184,29 +184,50 @@ ENTRYPOINT ["java","-jar","/app.jar"]
 
 Now a new `_docker build_` only takes, 0.5 seconds, much much better!
 
+Here are the golden layering rules:
 
-== You haven't explained how the layer cache works
+* Time / Network intensive -> TOP
+-> changing rarely -> TOP
+
+* always changing -> very low
+
+* Metadata: ENV, CMD, etc -> bottom of file
+
+
+== When does Docker re-build layers?
+
+show docker build with "cached" layer
 
 Right. You can read more about this in the https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#leverage-build-cache[official documentation]. The gist is, whenever you run Docker build, Docker will:
 
-* Either check the command itself you are running
+* Either check the command itself you are running (example todo)
 * Or for ADD and COPY commands calculate checksums of the involved files
 
+== .dockerignore
 
-== What are multistage builds?
+docker tars your files up and puts them in a directory..doesnt matter if locally or remote.. (yes, you can build your images also on a remote server)
+
+3:16
+.dockerignore may be useful to add as well (don't add all stuff into your image, especially handy when building e.g. a Node app where your build will be slow copying node_modules in but running npm install in the container may speed things up at build time. As an added bonus, outdated node_modules folders wont end up in the container)
+
+* .dockerignore.. git....uploading to docker host...
 
 == Directory Caching
 
 
-* Multistage build (build container...production container..)
+== directory caching
 
-* .dockerignore.. git....uploading to docker host...
+npm example,..or opython example...mounting root/cache for future builds...
 
-* layer cache - cache ordering..... time docker image build....order matters....
-* directory caching
 
-== Tip
+== What are multistage builds?
 
+you made it this far, letÄs finish with a bang...dockerfile can describe TWO or more images...why would you want that? because you might want someone to build software without having pre-requisites pre-installed..but NOT package all the needd software in the container )think bloat and speeeed!()
+
+
+== Fin
+
+learned somdething nrew? more docker? comment
 
 == Acknowledgments & References
 
