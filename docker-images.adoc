@@ -11,7 +11,7 @@ Marco Behler
 
 == What are we trying to understand?
 
-Whenever you're building Docker images, say, you want to bake your Java/Node/Python application into one, you'll be confrontend with the following two questions:
+Whenever you're building Docker images, say, you want to bake your Java/Node/Python application into one, you'll be confronted with the following two questions:
 
 * How can I make the `_docker build_` command run as fast as possible?
 * How can I make sure that the resulting Docker image is as small as possible?
@@ -30,9 +30,9 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-By running `_docker build -t myapp ._` on this Dockerfile, you will get (one) Docker image, which will be based off a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
+By running `_docker build -t myapp ._` on this Dockerfile, you will get (one) Docker image, which will be based on a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
 
-What might not immediately be obvious, that _every single line_ from your Docker line, will result in the creation of _one_ Docker image *layer* - every image consists of several such layers.
+What might not immediately be obvious, is that _every single line_ from your Docker line, will result in the creation of _one_ Docker image *layer* - every image consists of several such layers.
 
 You can confirm this by running e.g.:
 
@@ -59,7 +59,7 @@ Now, what do we do with this information?
 
 == Your layers can easily bloat
 
-Imagine you want to install a package through your package manager, and for that you want to run `_apt update_`, which updates the package manager's index.
+Imagine you want to install a package through your package manager, and for that, you want to run `_apt update_`, which updates the package manager's index.
 
 [source,dockerfile]
 ----
@@ -141,9 +141,9 @@ IMAGE          CREATED          CREATED BY                                      
 
 Ha! We at least saved the 45.7MB for now. What else is wrong with this, though?
 
-== Make it reproduceable
+== Make it reproducible
 
-You ideally want your builds to be reproduceable (who would have thought). By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproduceability, because package versions might change between builds.
+You ideally want your builds to be reproducible (who would have thought). By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproducibility, because package versions might change between builds.
 
 The gist:
 
@@ -152,7 +152,7 @@ The gist:
 
 == Layer order matters
 
-You'll want to make sure to put layers which change a lot towards the bottom of your `_Dockerfile_`, whereas more stable layers should be ordered on top.
+You'll want to make sure to put layers that change a lot towards the bottom of your `_Dockerfile_`, whereas more stable layers should be ordered on top.
 
 Why? Because when building images, you'll need to rebuild _every_ layer starting from the layer(s) that changed between builds.
 
@@ -170,7 +170,7 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-You can see the `_COPY index.html index.html_` line added almost at the top of the `_Dockerfile_`. Now, *everytime* the index.html file changes, you'll need to rebuild all subsequent layers, i.e. the `_RUN apt-update, ARG & COPY app.jar` layers - a huge time sink. On my machine, all of the above takes roughly 17 seconds to finish.
+You can see the `_COPY index.html index.html_` line added almost at the top of the `_Dockerfile_`. Now, *every time* the index.html file changes, you'll need to rebuild all subsequent layers, i.e. the `_RUN apt-update, ARG & COPY app.jar` layers - a huge time sink. On my machine, all of the above takes roughly 17 seconds to finish.
 
 If, however, you re-order the statement towards the bottom, Docker can re-use all previous layers, as they haven't changed.
 
@@ -197,7 +197,7 @@ Here are the golden layering rules:
 
 == When does Docker re-build layers?
 
-Docker doesn't always rebuild all image layers, whenever you run `_docker build_`. There are a specific set of rules, when and how Docker will cache your layers and you can read about them in the https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#leverage-build-cache[official documentation].
+Docker doesn't always rebuild all image layers, whenever you run `_docker build_`. There is a specific set of rules,on when and how Docker will cache your layers and you can read about them in the https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#leverage-build-cache[official documentation].
 
 The gist is, whenever you run Docker build, Docker will:
 
@@ -208,15 +208,15 @@ The gist is, whenever you run Docker build, Docker will:
 
 When you run `_docker build -t <tag> ._`, the `_._`, your current directory, will actually be your so-called `_build context_`. Meaning all the files inside your current directory will be tar'ed up and sent to your local or remote Docker daemon to perform the build.
 
-If you want to make sure that some directories never make it to your build daemon, thus keeping things snappy and small, you can create a `_.dockerignore_` file, which has similar syntax to `_.gitignore_`.
+If you want to make sure that some directories never make it to your build daemon, thus keeping things snappy and small, you can create a `_.dockerignore_` file, which has a similar syntax to `_.gitignore_`.
 
-In general, you should put any files/directories that are not relevant to your build in here (e.g. your `_.git folder_`), which is especially important when using commands like `_COPY . /somewhere_`, because then your entire project will end up in the resulting image.
+In general, you should put any files/directories that are not relevant to your build here (e.g. your `_.git folder_`), which is especially important when using commands like `_COPY . /somewhere_`, because then your entire project will end up in the resulting image.
 
 An npm example: You might want to run e.g. `_npm install_` during build time and let it download its dependencies, instead of (slowly) copying your `_node_modules_` folder in, so that would also make a good candidate for the dockerignore file. However, if you do that, here's another trick you'd want to know about: directory caching.
 
 == Directory Caching
 
-Say you run `_npm install_`, `_pip install_` `_gradlew build_` etc. to build your image. This will lead to dependencies being downloaded and a new image layer being created. Now, if that image layer has to be re-built, _all_ dependencies will be re-downloaded on the next build, because there won't be a `_.npm_`, `_.cache_` or `_.gradle_` folder available with the already downloaded dependencies.
+Say you run `_npm install_`, `_pip install_` `_gradlew build_` etc. to build your image. This will lead to dependencies being downloaded and a new image layer being created. Now, if that image layer has to be rebuilt, _all_ dependencies will be re-downloaded on the next build, because there won't be a `_.npm_`, `_.cache_` or `_.gradle_` folder available with the already downloaded dependencies.
 
 But you can change that! Let's take `_pip_` as an example and change the following line:
 
@@ -234,9 +234,9 @@ to:
 RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
 ----
 
-This will tell Docker to mount a caching layer/folder (`_/root/.cache_`) into the container during build time - in this case the folder that pip caches its dependencies in, for the root user. The trick is: this folder will not end up in the resulting image, but/and will be available to pip in all subsequent builds - and you'll get a nice speed up!
+This will tell Docker to mount a caching layer/folder (`_/root/.cache_`) into the container during build time - in this case, the folder that pip caches its dependencies in, for the root user. The trick is: this folder will not end up in the resulting image, but/and will be available to pip in all subsequent builds - and you'll get a nice speed up!
 
-Same goes for NPM, Gradle or any other package manager out there. Just make sure to specify the correct target folder.
+The same goes for NPM, Gradle, or any other package manager out there. Just make sure to specify the correct target folder.
 
 == What are multistage builds?
 
