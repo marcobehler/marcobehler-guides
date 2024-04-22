@@ -1,6 +1,6 @@
 = Docker Images - Finally Understandable
 Marco Behler
-2024-03-27
+2024-04-22
 :page-layout: layout-guides
 :page-image: "/images/guides/undraw_takeout_boxes_ap54.png"
 :page-description: Tips & Tricks to build Docker images in the fastest amount of time and with the smallest possible size.
@@ -20,7 +20,7 @@ You will want to continue reading for answers to these questions.
 
 == Docker Image Layers 101
 
-Take a look at the following Dockerfile.
+Take a look at the following `_Dockerfile_`.
 
 [source,dockerfile]
 ----
@@ -30,16 +30,18 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-By running `_docker build -t myapp ._`, you will get (one) Docker image, which will be based off a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
+By running `_docker build -t myapp ._` on this Dockerfile, you will get (one) Docker image, which will be based off a Java 17 (Eclipse-Temurin) image, as well as contain and run our Java application (the app.jar file).
 
-What might not immediately be obvious, that _every single line_ from your Docker line, will result in _one_ Docker image layer. You can confirm this by running e.g.:
+What might not immediately be obvious, that _every single line_ from your Docker line, will result in the creation of _one_ Docker image *layer* - every image consists of several such layers.
+
+You can confirm this by running e.g.:
 
 [source,console]
 ----
  docker image history myapp
 ----
 
-Which will return something like this:
+Which will return the image layers on new lines:
 
 [source,console]
 ----
@@ -49,9 +51,9 @@ IMAGE          CREATED              CREATED BY                                  
 <missing>      8 minutes ago   ARG JAR_FILE=build/libs/*.jar                   0B        buildkit.dockerfile.v0
 ... (other layers from the base image left out)
 ----
-There is a layer for our `_ENTRYPOINT_` line, one for `_COPY_` and one for `_ARG_.
+There is a layer for our `_ENTRYPOINT_` line, one for `_COPY_` and one for `_ARG_`.
 
-The layer containing our `_app.jar_` file (COPY}) is roughly 20MB large, with 0B metadata layers for the `_ENTRYPOINT_` and `_ARG_` lines.
+The layer containing our `_app.jar_` file (`_COPY_`) is roughly 20MB large, with 0B metadata layers for the `_ENTRYPOINT_` and `_ARG_` lines.
 
 Now, what do we do with this information?
 
@@ -68,7 +70,7 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-Let's have a look at the resulting layers (`_docker image history myapp_`):
+Let's have a look at the resulting layers (`_docker image history myapp_`) and focus on the very last line (`_RUN /bin/sh -c_...`):
 
 [source,console]
 ----
@@ -79,7 +81,7 @@ c14a18a04751   8 seconds ago   ENTRYPOINT ["java" "-jar" "/app.jar"]           0
 <missing>      8 seconds ago   RUN /bin/sh -c apt update -y # buildkit         45.7MB    buildkit.dockerfile.v0
 ----
 
-Wooha! Running `_apt-update_` has added a new layer with a whooping 45.7MB to our resulting Docker image.
+Wooha! Running `_apt-update_` has added a new layer with a whooping 45.7MB to our resulting Docker image. Now every time you push or pull your image, you'll need to transfer those additional megabytes.
 
 == Layers are additive
 
@@ -96,7 +98,7 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-In addition, we're removing the apt index cache (the 45.7MB from above) with the `_rm -rf_` command. Let's see what our image history now looks like:
+In addition, we're removing the apt index cache (the 45.7MB from above) with the `_rm -rf /var/lib/apt/lists/*_` command. Let's see what our image history now looks like:
 
 [source,console]
 ----
@@ -108,9 +110,11 @@ In addition, we're removing the apt index cache (the 45.7MB from above) with the
 <missing>      8 minutes ago   RUN /bin/sh -c apt update -y # buildkit         45.7MB    buildkit.dockerfile.v0
 ----
 
-Waah, what's that? Even though we deleted the apt cache files, the 45.7MB layer is still there (in addition to the 605MB MySQL layer, btw). That's because layers are strictly _additive / immutable_.
+Waah, what's that? Even though we deleted the apt cache files, the 45.7MB layer is still there (in addition to the 605MB MySQL layer, btw).
 
-How could we get around this? A simple workaround would be to run all three `_RUN_` commands on a single line (== a single resulting layer)
+That's because layers are strictly _additive / immutable_. You can surely delete those files from your current layer, but the older/previous layers will still contain them.
+
+How can you get around this? A simple workaround would be to run all three `_RUN_` commands on a single line (== a single resulting layer)
 
 
 [source,dockerfile]
@@ -139,7 +143,7 @@ Ha! We at least saved the 45.7MB for now. What else is wrong with this, though?
 
 == Make it reproduceable
 
-You ideally (who would have thought) want your builds to be reproduceable. By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproduceability, because package versions might change between builds.
+You ideally want your builds to be reproduceable (who would have thought). By running `_apt update_` and then installing whatever latest package there is in the repo, you effectively break that reproduceability, because package versions might change between builds.
 
 The gist:
 
@@ -150,9 +154,9 @@ The gist:
 
 You'll want to make sure to put layers which change a lot towards the bottom of your `_Dockerfile_`, whereas more stable layers should be ordered on top.
 
-Why? Because when building images, you'll need to rebuild _every_ layer starting from the layer that changed.
+Why? Because when building images, you'll need to rebuild _every_ layer starting from the layer(s) that changed between builds.
 
-A practical example. Imagine that you also want to package an index.html file into your image, which changes _a lot_, i.e. more often than anything else.
+A practical example: Imagine that you want to package an `_index.html_` file into your image, which changes _a lot_, i.e. more often than anything else.
 
 [source,Dockerfile]
 ----
@@ -166,9 +170,9 @@ COPY  ${JAR_FILE} app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-You can see the `_COPY index.html index.html_` line added almost at the top of the `_Dockerfile_`. Now, *everytime* the index.html file changes, you'll need to rebuild the following layers, i.e. the `_apt-update / mysql & copy .jar file_` layers - a huge time sink, as it takes roughly 17 seconds on my machine.
+You can see the `_COPY index.html index.html_` line added almost at the top of the `_Dockerfile_`. Now, *everytime* the index.html file changes, you'll need to rebuild all subsequent layers, i.e. the `_RUN apt-update, ARG & COPY app.jar` layers - a huge time sink. On my machine, all of the above takes roughly 17 seconds to finish.
 
-If you re-order the statement towards the bottom, Docker can re-use the previous layers, as they haven't changed.
+If, however, you re-order the statement towards the bottom, Docker can re-use all previous layers, as they haven't changed.
 
 [source,Dockerfile]
 ----
@@ -182,52 +186,65 @@ COPY index.html index.html
 ENTRYPOINT ["java","-jar","/app.jar"]
 ----
 
-Now a new `_docker build_` only takes, 0.5 seconds, much much better!
+Now a new `_docker build_` only takes, 0.5 seconds (on my machine), much much better!
 
 Here are the golden layering rules:
 
-* Time / Network intensive -> TOP
--> changing rarely -> TOP
-
-* always changing -> very low
-
-* Metadata: ENV, CMD, etc -> bottom of file
+* Files that rarely change or are time/network-intensive (e.g. installing new software) -> Top
+* Files that change often (e.g. source code) -> Very Low
+* ENV, CMD, etc -> Bottom
 
 
 == When does Docker re-build layers?
 
-show docker build with "cached" layer
+Docker doesn't always rebuild all image layers, whenever you run `_docker build_`. There are a specific set of rules, when and how Docker will cache your layers and you can read about them in the https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#leverage-build-cache[official documentation].
 
-Right. You can read more about this in the https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#leverage-build-cache[official documentation]. The gist is, whenever you run Docker build, Docker will:
+The gist is, whenever you run Docker build, Docker will:
 
-* Either check the command itself you are running (example todo)
-* Or for ADD and COPY commands calculate checksums of the involved files
+* Either check the commands in the Dockerfile for changes (e.g. did you change `_RUN blah_` to `_RUN doh_`).
+* Did any of the involved files (or rather their checksums), in the case of `_ADD_` or `_COPY_`, change?
 
 == .dockerignore
 
-docker tars your files up and puts them in a directory..doesnt matter if locally or remote.. (yes, you can build your images also on a remote server)
+When you run `_docker build -t <tag> ._`, the `_._`, your current directory, will actually be your so-called `_build context_`. Meaning all the files inside your current directory will be tar'ed up and sent to your local or remote Docker daemon to perform the build.
 
-3:16
-.dockerignore may be useful to add as well (don't add all stuff into your image, especially handy when building e.g. a Node app where your build will be slow copying node_modules in but running npm install in the container may speed things up at build time. As an added bonus, outdated node_modules folders wont end up in the container)
+If you want to make sure that some directories never make it to your build daemon, thus keeping things snappy and small, you can create a `_.dockerignore_` file, which has similar syntax to `_.gitignore_`.
 
-* .dockerignore.. git....uploading to docker host...
+In general, you should put any files/directories that are not relevant to your build in here (e.g. your `_.git folder_`), which is especially important when using commands like `_COPY . /somewhere_`, because then your entire project will end up in the resulting image.
+
+An npm example: You might want to run e.g. `_npm install_` during build time and let it download its dependencies, instead of (slowly) copying your `_node_modules_` folder in, so that would also make a good candidate for the dockerignore file. However, if you do that, here's another trick you'd want to know about: directory caching.
 
 == Directory Caching
 
+Say you run `_npm install_`, `_pip install_` `_gradlew build_` etc. to build your image. This will lead to dependencies being downloaded and a new image layer being created. Now, if that image layer has to be re-built, _all_ dependencies will be re-downloaded on the next build, because there won't be a `_.npm_`, `_.cache_` or `_.gradle_` folder available with the already downloaded dependencies.
 
-== directory caching
+But you can change that! Let's take `_pip_` as an example and change the following line:
 
-npm example,..or opython example...mounting root/cache for future builds...
+[source,Dockerfile]
+----
+FROM ...
+RUN pip install -r requirements.txt
+CMD ...
+----
 
+to:
+
+[source,Dockerfile]
+----
+RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
+----
+
+This will tell Docker to mount a caching layer/folder (`_/root/.cache_`) into the container during build time - in this case the folder that pip caches its dependencies in, for the root user. The trick is: this folder will not end up in the resulting image, but/and will be available to pip in all subsequent builds - and you'll get a nice speed up!
+
+Same goes for NPM, Gradle or any other package manager out there. Just make sure to specify the correct target folder.
 
 == What are multistage builds?
 
-you made it this far, letÄs finish with a bang...dockerfile can describe TWO or more images...why would you want that? because you might want someone to build software without having pre-requisites pre-installed..but NOT package all the needd software in the container )think bloat and speeeed!()
-
+Coming Soon.
 
 == Fin
 
-learned somdething nrew? more docker? comment
+This article should have given you a good grasp of Docker image fundamentals. If you have any questions or other comments, please post them in the comment section below.
 
 == Acknowledgments & References
 
