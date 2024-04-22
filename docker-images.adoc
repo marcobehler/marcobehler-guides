@@ -4,9 +4,9 @@ Marco Behler
 :page-layout: layout-guides
 :page-image: "/images/guides/undraw_takeout_boxes_ap54.png"
 :page-description: Tips & Tricks to build Docker images in the fastest amount of time and with the smallest possible size.
-:page-published: false
+:page-published: true
 :page-tags: ["docker", "docker images", "docker tips"]
-:page-commento_id: /guides/docker
+:page-commento_id: /guides/docker-images
 
 
 == What are we trying to understand?
