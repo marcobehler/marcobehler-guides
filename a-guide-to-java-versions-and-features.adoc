@@ -1,7 +1,7 @@
 = Java Versions and Features
 Marco Behler
 2021-09-17
-:revdate: 2023-05-04
+:revdate: 2024-06-28
 :page-layout: layout-guides
 :page-icon: files_paper
 :sourcedir: /mnt/c/dev/TODO
@@ -21,19 +21,19 @@ Go to the https://adoptium.net[Adoptium] site, choose the very latest release ve
 
 === What is the latest Java version?
 
-As of March 2023, https://openjdk.java.net/projects/jdk/20/[Java 20] is the latest released Java version. In September 2023, https://openjdk.java.net/projects/jdk/21/[Java 21] will follow. The current long-term support version (LTS) of Java is Java 17, released in September 2021.
+As of June 2024, https://openjdk.java.net/projects/jdk/22/[Java 22] is the latest released Java version. In September 2024, https://openjdk.java.net/projects/jdk/23/[Java 23] will follow. The current long-term support version (LTS) of Java is Java 21, released in September 2023.
 
 === What Java version should I use?
 
 Newer Java versions now follow every 6 months. Hence, Java 21 is scheduled for September 2023, Java 22 for March 2024 and so on. In the past, Java release cycles were _much longer_, up to 3-5 years. This graphic demonstrates that:
 
-[ditaa,java-versions-release-cycles-7,png]
+[ditaa,java-versions-release-cycles-8,png]
 
 ----
 |
-|  09/04    09/06         07/11     03/14     09/17  03/18  09/18  03/19  09/19  03/20  09/20  03/21  09/21  03/22  09/22   03/23
-|----|--------|-------------|---------|---------|------|------|------|------|------|------|------|------|------|------|------|--------->
-|   5.0       6             7         8         9      10     11     12     13     14     15     16     17     18     19    20
+|  09/04    09/06         07/11     03/14     09/17  03/18  09/18  03/19  09/19  03/20  09/20  03/21  09/21  03/22  09/22   03/23    03/24
+|----|--------|-------------|---------|---------|------|------|------|------|------|------|------|------|------|------|------|--------|----->
+|   5.0       6             7         8         9      10     11     12     13     14     15     16     17     18     19    20  ...  22
 |
 ----
 
