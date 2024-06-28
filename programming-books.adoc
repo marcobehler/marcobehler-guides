@@ -1,4 +1,4 @@
-= Programming book recommendations
+= Programming Book Recommendations
 Marco Behler
 2024-06-28
 :page-layout: layout-guides
