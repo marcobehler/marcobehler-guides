@@ -436,7 +436,7 @@ With all of that YAML we then managed to schedule a single, static, one-off pod.
 
 Well, for now, there actually is none.
 
-That's why we need to dig deeper into the concepts of `_ReplicaSets_` and `_Deployments_
+That's why we need to dig deeper into the concepts of `_ReplicaSets_` and `_Deployments_`.
 
 === ReplicaSets
 
