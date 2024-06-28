@@ -18,7 +18,7 @@ This is a work in progress and more books will be added soon.
 == Java & Spring
 
 - https://amzn.to/3L0aLzo[Java Concurrency in Practice]
-- https://amzn.to/4cFZMGZ[Java Persistence With Hibernate]
+- https://amzn.to/4bjUrE9[Java Persistence With Hibernate] (Yes, the older edition!)
 
 == Frontend
 
@@ -26,11 +26,11 @@ This is a work in progress and more books will be added soon.
 
 == Testing
 
-- https://amzn.to/4cHXwzg[Mockito Made Clear]
+- https://amzn.to/4eJO8Nm[Mockito Made Clear]
 
 == General
 
-- https://amzn.to/3L2k4yIp[Version Control With Git]
+- https://amzn.to/4cnwu08[Version Control With Git]
 - https://amzn.to/4cFZMGZ[How Linux Works]
 - https://amzn.to/4cHgC8o[Docker Up And Running]
 - https://amzn.to/3W2D06I[Crafting Interpreters]
