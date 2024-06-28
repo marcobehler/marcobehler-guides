@@ -1,6 +1,6 @@
-= Docker Images - Finally Understandable
+= Building Docker Images - Best Practices
 Marco Behler
-2024-04-22
+2024-06-28
 :page-layout: layout-guides
 :page-image: "/images/guides/undraw_takeout_boxes_ap54.png"
 :page-description: Tips & Tricks to build Docker images in the fastest amount of time and with the smallest possible size.
@@ -245,6 +245,12 @@ Coming Soon.
 == Fin
 
 This article should have given you a good grasp of Docker image fundamentals. If you have any questions or other comments, please post them in the comment section below.
+
+== Video
+
+If you'd like to see this article as a video instead, have a look here:
+
+mb_youtube::JcGwgNMZc_E[]
 
 == Acknowledgments & References
 
