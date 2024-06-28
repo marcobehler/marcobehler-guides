@@ -5,7 +5,7 @@ Marco Behler
 :linkattrs:
 :page-image: "/images/guides/undraw_Building_re_xfcm.png"
 :page-description: I keep forgetting the Gradle commands I'm using on a daily basis - hence, this cheat sheet. Maybe you find it useful.
-:page-published: false
+:page-published: true
 :page-tags: ["gradlew", "gradle", "gradle cheat sheet"]
 :page-commento_id: gradle-cheat-sheet
 

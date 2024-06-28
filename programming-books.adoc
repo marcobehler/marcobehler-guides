@@ -1,0 +1,43 @@
+= Programming book recommendations
+Marco Behler
+2024-06-28
+:page-layout: layout-guides
+:linkattrs:
+:page-image: "/images/guides/undraw_Building_re_xfcm.png"
+:page-description: A list of programming books I've read and that I can wholeheartedly recommend.
+:page-published: true
+:page-tags: ["programming books"]
+:page-commento_id: programming-books
+
+This is a work in progress and more books will be added soon.
+
+== Algorithms
+
+- https://amzn.to/3XJwlzE[A Common-Sense Guide to Data Structures and Algorithms, Second Edition]
+
+== Java & Spring
+
+- https://amzn.to/3L0aLzo[Java Concurrency in Practice]
+- https://amzn.to/4cFZMGZ[Java Persistence With Hibernate]
+
+== Frontend
+
+- https://amzn.to/3zmvXNr[React: Up and Running]
+
+== Testing
+
+- https://amzn.to/4cHXwzg[Mockito Made Clear]
+
+== General
+
+- https://amzn.to/3L2k4yIp[Version Control With Git]
+- https://amzn.to/4cFZMGZ[How Linux Works]
+- https://amzn.to/4cHgC8o[Docker Up And Running]
+- https://amzn.to/3W2D06I[Crafting Interpreters]
+
+== Product Management
+
+- https://amzn.to/3La6wRD[Product Management in Practice]
+
+
+
